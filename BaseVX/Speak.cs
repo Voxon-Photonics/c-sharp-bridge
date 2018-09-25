@@ -332,10 +332,10 @@ namespace Voxon
                 {
                     if (dll == "")
                     {
-                        var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\WoW6432Node\\VoxonPhotonics");
+                        var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon Photonics\\Voxon SDK");
                         if(_dll != null)
                         {
-                            dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\WoW6432Node\\VoxonPhotonics").GetValue("AppDataPath") + "voxiebox.dll";
+                            dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon Photonics\\Voxon SDK").GetValue("Path") + "voxiebox.dll";
                         }
                                 
 
@@ -345,7 +345,7 @@ namespace Voxon
 
                             foreach (var path in paths)
                             {
-                                if(File.Exists(path + "\\voxiebox.dll"))
+                                if (File.Exists(path + "\\voxiebox.dll"))
                                 {
                                     dll = path + "\\voxiebox.dll";
                                 }
@@ -353,7 +353,16 @@ namespace Voxon
                         }
 
                         if (dll == "")
-                            log("DLL not found");
+                        {
+                            if (File.Exists("voxiebox.dll"))
+                            {
+                                dll = "voxiebox.dll";
+                            }
+                            else
+                            {
+                                log("DLL not found");
+                            }
+                        }
                     }
                     //Load DLL
                     Handle = LoadLibrary(dll);
@@ -397,22 +406,7 @@ namespace Voxon
                 b_initialised = true;
             }
         }
-        /*
-        unsafe public static string Report()
-        {
-            string str = "";
-            TypedReference tr = __makeref(vw);
-            IntPtr ptr = **(IntPtr**)(&tr);
-            str += "VW: " + ptr + "\n";
-            tr = __makeref(vf);
-            ptr = **(IntPtr**)(&tr);
-            str += "VF: " + ptr + "\n";
-            tr = __makeref(ins);
-            ptr = **(IntPtr**)(&tr);
-            str += "INS: " + ptr + "\n";
-            return str;
-        }
-        */
+
         public static void Unload()
         {
             if (isLoaded())
@@ -687,7 +681,7 @@ namespace Voxon
         public static void draw_letters(ref point3d pp, ref point3d pr, ref point3d pd, Int32 col, byte[] text)
         {
             if (!isActive()) return;
-            voxie_printalph(ref vf, ref pp, ref pr, ref pd, 0xffffff, text);
+            voxie_printalph(ref vf, ref pp, ref pr, ref pd, col, text);
         }
 
         public static void draw_box(float min_x, float min_y, float min_z, float max_x, float max_y, float max_z, int fill, int colour)
