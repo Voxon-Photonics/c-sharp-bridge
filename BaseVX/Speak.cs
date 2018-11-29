@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 
+
 namespace Voxon
 {
     public class DLL
@@ -128,6 +129,7 @@ namespace Voxon
             public int p2;
         }
 
+        [Serializable]
         public struct poltex_t
         {
             public float x, y, z, u, v;
@@ -332,10 +334,10 @@ namespace Voxon
                 {
                     if (dll == "")
                     {
-                        var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon Photonics\\Voxon SDK");
+                        var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon");
                         if(_dll != null)
                         {
-                            dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon Photonics\\Voxon SDK").GetValue("Path") + "voxiebox.dll";
+                            dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Path") + "voxiebox.dll";
                         }
                                 
 
