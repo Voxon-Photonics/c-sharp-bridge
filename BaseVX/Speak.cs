@@ -5,13 +5,88 @@ using System.Runtime.InteropServices;
 
 namespace Voxon
 {
+    #region public_structures
+    [Serializable]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct point3d
+    {
+        public float x, y, z;
+
+        public float[] GetPosition()
+        {
+            return new float[] { x, y, z };
+        }
+
+        public point3d(float[] pos)
+        {
+            x = pos[0];
+            y = pos[1];
+            z = pos[2];
+        }
+
+        public point3d(poltex_t pos)
+        {
+            x = pos.x;
+            y = pos.y;
+            z = pos.z;
+        }
+    }
+
+    [Serializable]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct pol_t
+    {
+        public float x, y, z;
+        public int p2;
+    }
+
+    [Serializable]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct poltex_t
+    {
+        public float x, y, z, u, v;
+        public int col;
+
+        override public string ToString()
+        {
+            return "(" + x + ", " + y + ", " + z + ")-(" + u + ", " + v + ") : " + col;
+        }
+
+        public float[] GetPosition()
+        {
+            return new float[] { x, y, z };
+        }
+
+        public poltex_t(point3d pos)
+        {
+            x = pos.x;
+            y = pos.y;
+            z = pos.z;
+            u = 0;
+            v = 0;
+            col = 0;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct tiletype
+    {
+        public IntPtr first_pixel;          // pointer to first pixel of the texture (usually the top-left corner)
+        public IntPtr pitch;                   // pitch, or number of bytes per horizontal line (usually x*4)
+        public IntPtr height, width;          // width & height of texture
+    }
+    #endregion
+
     public class DLL
     {
-        // Magic Numbers
+        #region magic_numbers
         const int MAXCONTROLLERS = 4;
         const int TEXTURE_BACK_COLOUR = 0x3F3F3F;
         private static System.Text.Encoding enc = System.Text.Encoding.ASCII;
+        #endregion
 
+        #region private_structures
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct voxie_xbox_t
         {
             public short but;       //XBox controller buttons (same layout as XInput)
@@ -21,11 +96,13 @@ namespace Voxon
             public short hat;
         }
 
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct point2d
         {
             public float x, y;
         }
 
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct voxie_disp_t
         {
             //settings for quadrilateral (keystone) compensation (use voxiedemo mode 2 to calibrate)
@@ -35,6 +112,7 @@ namespace Voxon
             public int mirrorx, mirrory;       //projector hardware flipping (I suggest avoiding this)
         }
 
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct voxie_wind_t
         {
             //Emulation
@@ -96,8 +174,17 @@ namespace Voxon
             //Obsolete
             public double freq;            //starting value in Hz (must be set before first call to voxie_init()); obsolete - not used by current hardware
             public double phase;           //phase lock {0.0..1.0} (can be updated on later calls to voxie_init()); obsolete - not used by current hardware
+
+            //Helix
+            public int helixtyp; //-1=up/down screen, 0=/|/|, 1=/../.., 2=/|
+            public int motortyp; //0=Old DC brush motor, 1=ClearPath using Unipolar PWM Input, 2=AU brushless airplane motor, 3=ClearPath using Frequency Input
+            public int clipshape; //0=rectangle (vw.aspx,vw.aspy), 1=circle (vw.aspr)
+            public int goalrpm, cpmaxrpm, ianghak0, ianghak1, ianghak2;
+            public float caloffx0, caloffx1, caloffx2, caloffy0, caloffy1, caloffy2, sync_usb_offset;
+            public float focleng0, focleng1, focleng2, vang0, vang1, vang2, aspr, sawtoothrat;
         }
 
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct voxie_frame_t
         {
             public IntPtr f;              //Pointer to top-left-up of current frame to draw
@@ -112,37 +199,7 @@ namespace Voxon
             public tiletype f2d;
         }
 
-        public struct point3d
-        {
-            public float x, y, z;
-        }
-
-        struct point3dcol_t
-        {
-            public float x, y, z;
-            public int col;
-        }
-
-        struct pol_t
-        {
-            public float x, y, z;
-            public int p2;
-        }
-
-        [Serializable]
-        public struct poltex_t
-        {
-            public float x, y, z, u, v;
-            public int col;
-        }
-
-        public struct tiletype
-        {
-            public IntPtr first_pixel;          // pointer to first pixel of the texture (usually the top-left corner)
-            public Int64 pitch;                   // pitch, or number of bytes per horizontal line (usually x*4)
-            public Int64 height, width;          // width & height of texture
-        }
-
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct voxie_inputs_t
         {
             public int bstat, obstat, dmousx, dmousy, dmousz;
@@ -166,6 +223,9 @@ namespace Voxon
             public voxie_xbox_t last_frame;
         }
 
+        #endregion
+
+        #region delegate_functions
         delegate void voxie_load_d(ref voxie_wind_t vw);
 
         delegate void voxie_loadini_int_d(ref voxie_wind_t vw);
@@ -201,10 +261,9 @@ namespace Voxon
         delegate void voxie_drawbox_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1,
             float z1, int fillmode, int col);
 
-        delegate void voxie_drawlin_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1,
-            float z1, int col);
+        delegate void voxie_drawlin_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1, float z1, int col);
 
-        delegate void voxie_drawpol_d(ref voxie_frame_t vf, ref pol_t pt, int n, int col);
+        delegate void voxie_drawpol_d(ref voxie_frame_t vf, pol_t[] pt, int n, int col);
 
         delegate void voxie_drawmesh_d(ref voxie_frame_t vf, poltex_t[] vt, int vtn, int[] mesh, int meshn, int fillmode, int col);
 
@@ -229,7 +288,7 @@ namespace Voxon
         delegate void voxie_drawcube_d(ref voxie_frame_t vf, ref point3d p, ref point3d r, ref point3d d,
             ref point3d f, int fillmode, int col);
 
-        delegate float voxie_drawheimap_d(ref voxie_frame_t vf, [MarshalAs(UnmanagedType.LPStr)] string st,
+        delegate float voxie_drawheimap_d(ref voxie_frame_t vf, ref tiletype texture,
             ref point3d p, ref point3d r, ref point3d d, ref point3d f, int colorkey, int heimin, int flags);
 
         delegate void voxie_playsound_d([MarshalAs(UnmanagedType.LPStr)] string st, int chan, int volperc0,
@@ -239,8 +298,7 @@ namespace Voxon
 
         delegate void voxie_xbox_write_d(int id, float lmot, float rmot);
 
-
-        public delegate void voxie_debug_print6x8_d     (int x, int y, int fcol, int bcol, byte[] fmt);
+        delegate void voxie_debug_print6x8_d     (int x, int y, int fcol, int bcol, byte[] fmt);
         delegate void voxie_debug_drawpix_d      (int x, int y, int col);
         delegate void voxie_debug_drawhlin_d     (int x0, int x1, int y, int col);
         delegate void voxie_debug_drawline_d     (float x0, float y0, float x1, float y1, int col);
@@ -248,6 +306,9 @@ namespace Voxon
         delegate void voxie_debug_drawrectfill_d (int x0, int y0, int x1, int y1, int col);
         delegate void voxie_debug_drawcircfill_d (int x, int y, int r, int col);
 
+        #endregion
+
+        #region DLL_imports
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         static extern IntPtr LoadLibrary(string libname);
 
@@ -256,7 +317,9 @@ namespace Voxon
 
         [DllImport("kernel32.dll", CharSet = CharSet.Ansi)]
         private static extern IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
+        #endregion
 
+        #region delegate_instances
         // Operation
         static voxie_loadini_int_d voxie_loadini_int;
         static voxie_init_d voxie_init;
@@ -288,8 +351,7 @@ namespace Voxon
         static voxie_xbox_read_d voxie_xbox_read;
         static voxie_xbox_write_d voxie_xbox_write;
 
-        // New Functions
-
+        // Debug Functions
         static voxie_debug_print6x8_d voxie_debug_print6x8;
         static voxie_debug_drawpix_d voxie_debug_drawpix;
         static voxie_debug_drawhlin_d voxie_debug_drawhlin;
@@ -298,34 +360,23 @@ namespace Voxon
         static voxie_debug_drawrectfill_d voxie_debug_drawrectfill;
         static voxie_debug_drawcircfill_d voxie_debug_drawcircfill;
 
-        // DLL values
-        static string dll = "";
-        
-        static IntPtr Handle = IntPtr.Zero;
+        #endregion
 
-        // Runtime values
+        #region runtime_dll
+        static string dll = "";
+        static IntPtr Handle = IntPtr.Zero;
+        #endregion
+
+        #region runtime_values
         private static voxie_wind_t vw;
         private static voxie_frame_t vf;
         private static voxie_inputs_t ins;
         private static xbox_input[] controllers = new xbox_input[MAXCONTROLLERS];
-
         private static bool b_initialised = false;
+        #endregion
 
-        public static bool isLoaded()
-        {
-            return (Handle != IntPtr.Zero);
-        }
-
-        public static bool isInitialised()
-        {
-            return b_initialised;
-        }
-
-        static bool isActive()
-        {
-            return (Handle != IntPtr.Zero) && b_initialised;
-        }
-
+        #region public_functions
+        #region dll_control
         public static void Load()
         {
             try
@@ -335,11 +386,11 @@ namespace Voxon
                     if (dll == "")
                     {
                         var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon");
-                        if(_dll != null)
+                        if (_dll != null)
                         {
                             dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Path") + "voxiebox.dll";
                         }
-                                
+
 
                         if (dll == "")
                         {
@@ -391,7 +442,7 @@ namespace Voxon
 
         public static void Initialise()
         {
-            if(!isActive())
+            if (!isActive())
             {
                 // Refresh components
                 vw = new voxie_wind_t();
@@ -400,6 +451,13 @@ namespace Voxon
 
                 // Initialise Box
                 voxie_loadini_int(ref vw);
+
+                // If we are operating on a spinning display, set circular clip shape
+                if(vw.helixtyp != -1)
+                {
+                    vw.clipshape = 1;
+                }
+
                 voxie_init(ref vw);
 
                 // Set Up Controllers (now the box is running)
@@ -415,7 +473,7 @@ namespace Voxon
             {
                 try
                 {
-                    if(isInitialised())
+                    if (isInitialised())
                     {
                         Shutdown();
                     }
@@ -430,59 +488,6 @@ namespace Voxon
                     log(e.Message);
                 }
             }
-        }
-
-        public static int getkey(int i)
-        {
-            if (!isActive()) return 0;
-
-            return voxie_keystat(i);
-        }
-
-        public static void Shutdown()
-        {
-            if (!isActive()) return;
-
-            try
-            {
-                voxie_quitloop();
-                voxie_frame_end();
-                voxie_getvw(ref vw);
-                voxie_breath(ref ins);
-                voxie_uninit_int(0);
-                b_initialised = false;
-
-                // Clear old references
-                vw = new voxie_wind_t();
-                vf = new voxie_frame_t();
-                ins = new voxie_inputs_t();
-            }
-            catch (Exception e)
-            {
-                log(e.Message);
-            }
-        }
-
-        public static bool start_frame()
-        {
-            if (!isActive()) return false;
-
-            bool has_breath = voxie_breath(ref ins) == 0;
-
-            voxie_frame_start(ref vf);
-            voxie_setview(ref vf, -vw.aspx, -vw.aspy, -vw.aspz, vw.aspx, vw.aspy, vw.aspz);
-
-            update_xbox_controllers();
-
-            return has_breath;
-        }
-
-        public static void end_frame()
-        {
-            if (!isActive()) return;
-
-            voxie_frame_end();
-            voxie_getvw(ref vw);
         }
 
         static void setup_delegates(IntPtr Handle)
@@ -595,6 +600,91 @@ namespace Voxon
             funcaddr = GetProcAddress(Handle, "voxie_debug_drawcircfill");
             voxie_debug_drawcircfill = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_debug_drawcircfill_d)) as voxie_debug_drawcircfill_d;
         }
+        #endregion
+
+        #region dll_status
+        public static bool isLoaded()
+        {
+            return (Handle != IntPtr.Zero);
+        }
+
+        public static bool isInitialised()
+        {
+            return b_initialised;
+        }
+
+        static bool isActive()
+        {
+            return (Handle != IntPtr.Zero) && b_initialised;
+        }
+        #endregion
+
+        #region device_calls
+        public static void Shutdown()
+        {
+            if (!isActive()) return;
+
+            try
+            {
+                voxie_quitloop();
+                voxie_frame_end();
+                voxie_getvw(ref vw);
+                voxie_breath(ref ins);
+                voxie_uninit_int(0);
+                b_initialised = false;
+
+                // Clear old references
+                vw = new voxie_wind_t();
+                vf = new voxie_frame_t();
+                ins = new voxie_inputs_t();
+            }
+            catch (Exception e)
+            {
+                log(e.Message);
+            }
+        }
+
+        public static bool start_frame()
+        {
+            if (!isActive()) return false;
+
+            bool has_breath = voxie_breath(ref ins) == 0;
+
+            voxie_frame_start(ref vf);
+
+            voxie_setview(ref vf, -vw.aspx, -vw.aspy, -vw.aspz, vw.aspx, vw.aspy, vw.aspz);
+
+            update_xbox_controllers();
+
+            return has_breath;
+        }
+
+        public static void end_frame()
+        {
+            if (!isActive()) return;
+
+            voxie_frame_end();
+
+            voxie_getvw(ref vw);
+        }
+        #endregion
+
+        #region camera_controls
+        private static void set_is_circular(bool is_circular)
+        {
+            if (!isActive()) return;
+
+            if(is_circular)
+            {
+                vw.clipshape = 1;
+                voxie_init(ref vw);
+            } else
+            {
+                vw.clipshape = 0;
+                voxie_init(ref vw);
+            }
+            
+        }
 
         public static void set_aspect_ratio(float aspx, float aspy, float aspz)
         {
@@ -625,11 +715,83 @@ namespace Voxon
 
             return asp;
         }
+        #endregion
 
+        #region drawables
         public static void draw_guidelines()
         {
             if (!isActive()) return;
             voxie_drawbox(ref vf, -vw.aspx + 1e-3f, -vw.aspy + 1e-3f, -vw.aspz, +vw.aspx - 1e-3f, +vw.aspy - 1e-3f, +vw.aspz, 1, 0xffffff);
+        }
+
+        public static void draw_letters(ref point3d pp, ref point3d pr, ref point3d pd, Int32 col, byte[] text)
+        {
+            if (!isActive()) return;
+            voxie_printalph(ref vf, ref pp, ref pr, ref pd, col, text);
+        }
+
+        public static void draw_box(ref point3d min, ref point3d max, int fill, int colour)
+        {
+            if (!isActive()) return;
+            voxie_drawbox(ref vf, min.x, min.y, min.z, max.x, max.y, max.z, fill, colour);
+        }
+
+        public static void draw_textured_mesh(ref tiletype texture, poltex_t[] vertices, int vertice_count, int[] indices, int indice_count, int flags)
+        {
+            if (!isActive()) return;
+            voxie_drawmeshtex(ref vf, ref texture, vertices, vertice_count, indices, indice_count, flags, TEXTURE_BACK_COLOUR);
+        }
+
+        public static void draw_untextured_mesh(poltex_t[] vertices, int vertice_count, int[] indices, int indice_count, int flags, int colour)
+        {
+            if (!isActive()) return;
+            voxie_drawmeshtex_null(ref vf, 0, vertices, vertice_count, indices, indice_count, flags, colour);
+        }
+
+        public static void draw_sphere(ref point3d position, float radius, int issol, int colour)
+        {
+            if (!isActive()) return;
+            voxie_drawsph(ref vf, position.x, position.y, position.z, radius, issol, colour);
+        }
+
+        public static void draw_voxel(ref point3d position, int col)
+        {
+            if (!isActive()) return;
+            voxie_drawvox(ref vf, position.x, position.y, position.z, col);
+        }
+
+        public static void draw_cube(ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, int flags, Int32 col)
+        {
+            if (!isActive()) return;
+            voxie_drawcube(ref vf, ref pp, ref pr, ref pd, ref pf, flags, col);
+        }
+
+        public static void draw_line(ref point3d min, ref point3d max, int col)
+        {
+            if (!isActive()) return;
+            voxie_drawlin(ref vf, min.x, min.y, min.z, max.x, max.y, max.z, col);
+        }
+
+        public static void draw_polygon(pol_t[] pt, int pt_count, Int32 col)
+        {
+            if (!isActive()) return;
+            voxie_drawpol(ref vf, pt, pt_count, col);
+        }
+
+        public static void draw_heightmap(ref tiletype texture, ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, Int32 colorkey, int min_height, int flags)
+        {
+            if (!isActive()) return;
+            voxie_drawheimap(ref vf, ref texture , ref pp, ref pr, ref pd, ref pf, colorkey, min_height, flags);
+        }
+        #endregion
+
+        #region input
+
+        public static int getkey(int i)
+        {
+            if (!isActive()) return 0;
+
+            return voxie_keystat(i);
         }
 
         public static bool get_key(int keycode)
@@ -678,36 +840,6 @@ namespace Voxon
 
             return mouse_down;
 
-        }
-
-        public static void draw_letters(ref point3d pp, ref point3d pr, ref point3d pd, Int32 col, byte[] text)
-        {
-            if (!isActive()) return;
-            voxie_printalph(ref vf, ref pp, ref pr, ref pd, col, text);
-        }
-
-        public static void draw_box(float min_x, float min_y, float min_z, float max_x, float max_y, float max_z, int fill, int colour)
-        {
-            if (!isActive()) return;
-            voxie_drawbox(ref vf, min_x, min_y, min_z, max_x, max_y, max_z, fill, colour);
-        }
-
-        public static void draw_textured_mesh(ref tiletype texture, poltex_t[] vertices, int vertice_count, int[] indices, int indice_count, int flags)
-        {
-            if (!isActive()) return;
-            voxie_drawmeshtex(ref vf, ref texture, vertices, vertice_count, indices, indice_count, flags, TEXTURE_BACK_COLOUR);
-        }
-
-        public static void draw_untextured_mesh(poltex_t[] vertices, int vertice_count, int[] indices, int indice_count, int flags, int colour)
-        {
-            if (!isActive()) return;
-            voxie_drawmeshtex_null(ref vf, 0, vertices, vertice_count, indices, indice_count, flags, colour);
-        }
-
-        public static void draw_sphere(float fx, float fy, float fz, float radius, int issol, int colour)
-        {
-            if (!isActive()) return;
-            voxie_drawsph(ref vf, fx, fy, fz, radius, issol, colour);
         }
 
         public static void update_xbox_controllers()
@@ -776,12 +908,17 @@ namespace Voxon
                 }
             }
         }
+        #endregion
 
+        #region sound
         public static float get_volume()
         {
             return vw.sndfx_vol / 65535.0f;
         }
+        #endregion
 
+        #region logging
+        // LOGGING
         public static void log(string msg)
         {
             var FS = File.AppendText("exception.log");
@@ -789,6 +926,8 @@ namespace Voxon
             FS.WriteLine(msg);
             FS.Close();
         }
+
+        public static void debug_log(int[] pos, string Text) { debug_log(pos[0], pos[1], Text); }
 
         public static void debug_log(int x, int y, string Text)
         {
@@ -802,5 +941,14 @@ namespace Voxon
 
             voxie_debug_print6x8(x, y, 0xFFFFFF, 0x0, ts); // array);
         }
+        #endregion
+        #endregion
+
+        #region class_functions
+        ~DLL()
+        {
+            Shutdown();
+        }
+        #endregion
     }
 }
