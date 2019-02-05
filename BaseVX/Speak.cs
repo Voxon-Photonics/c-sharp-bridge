@@ -30,6 +30,11 @@ namespace Voxon
             y = pos.y;
             z = pos.z;
         }
+
+        public override string ToString()
+        {
+            return "(" + x + "," + y + "," + z + ")";
+        }
     }
 
     [Serializable]
