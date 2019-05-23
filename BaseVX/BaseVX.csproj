@@ -58,8 +58,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Speak.cs" />
+    <Compile Include="RuntimePromise.cs" />
+    <Compile Include="Runtime.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Types.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -1,93 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 
-
 namespace Voxon
 {
-    #region public_structures
-    [Serializable]
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct point3d
-    {
-        public float x, y, z;
-
-        public float[] GetPosition()
-        {
-            return new float[] { x, y, z };
-        }
-
-        public point3d(float[] pos)
-        {
-            x = pos[0];
-            y = pos[1];
-            z = pos[2];
-        }
-
-        public point3d(poltex_t pos)
-        {
-            x = pos.x;
-            y = pos.y;
-            z = pos.z;
-        }
-
-        public override string ToString()
-        {
-            return "(" + x + "," + y + "," + z + ")";
-        }
-    }
-
-    [Serializable]
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct pol_t
-    {
-        public float x, y, z;
-        public int p2;
-    }
-
-    [Serializable]
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct poltex_t
-    {
-        public float x, y, z, u, v;
-        public int col;
-
-        override public string ToString()
-        {
-            return "(" + x + ", " + y + ", " + z + ")-(" + u + ", " + v + ") : " + col;
-        }
-
-        public float[] GetPosition()
-        {
-            return new float[] { x, y, z };
-        }
-
-        public poltex_t(point3d pos)
-        {
-            x = pos.x;
-            y = pos.y;
-            z = pos.z;
-            u = 0;
-            v = 0;
-            col = 0;
-        }
-    }
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct tiletype
-    {
-        public IntPtr first_pixel;          // pointer to first pixel of the texture (usually the top-left corner)
-        public IntPtr pitch;                   // pitch, or number of bytes per horizontal line (usually x*4)
-        public IntPtr height, width;          // width & height of texture
-    }
-    #endregion
-
-    public class DLL
+    public class Runtime : RuntimePromise
     {
         #region magic_numbers
         const int MAXCONTROLLERS = 4;
         const int TEXTURE_BACK_COLOUR = 0x3F3F3F;
-        private static System.Text.Encoding enc = System.Text.Encoding.ASCII;
+        private System.Text.Encoding enc = System.Text.Encoding.ASCII;
         #endregion
 
         #region private_structures
@@ -180,14 +103,18 @@ namespace Voxon
             public double freq;            //starting value in Hz (must be set before first call to voxie_init()); obsolete - not used by current hardware
             public double phase;           //phase lock {0.0..1.0} (can be updated on later calls to voxie_init()); obsolete - not used by current hardware
 
-            //Helix
-            public int helixtyp; //-1=up/down screen, 0=/|/|, 1=/../.., 2=/|
-            public int motortyp; //0=Old DC brush motor, 1=ClearPath using Unipolar PWM Input, 2=AU brushless airplane motor, 3=ClearPath using Frequency Input
-            public int clipshape; //0=rectangle (vw.aspx,vw.aspy), 1=circle (vw.aspr)
-            public int goalrpm, cpmaxrpm, ianghak0, ianghak1, ianghak2;
-            public float caloffx0, caloffx1, caloffx2, caloffy0, caloffy1, caloffy2, sync_usb_offset;
-            public float focleng0, focleng1, focleng2, vang0, vang1, vang2, aspr, sawtoothrat;
-        }
+			//Helix
+			public int reserved2;
+			public int motortyp; //0=Old DC brush motor, 1=ClearPath using Frequency Input, 2=AU brushless airplane motor
+			public int clipshape; //0=rectangle (vw.aspx,vw.aspy), 1=circle (vw.aspr)
+			public int goalrpm, cpmaxrpm, ianghak0, ianghak1, ianghak2;
+			public int upndow; //0=sawtooth, 1=triangle
+			public int nblades; //0=VX1 (not spinner), 1=/|, 2=/|/|, ..
+			public int reserved3_0, reserved3_1, reserved3_2, reserved3_3;
+			public float sync_usb_offset;
+			public int reserved4_0, reserved4_1, reserved4_2, reserved4_3, reserved4_4, reserved4_5;
+			public float aspr, sawtoothrat;
+		}
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         struct voxie_frame_t
@@ -270,12 +197,12 @@ namespace Voxon
 
         delegate void voxie_drawpol_d(ref voxie_frame_t vf, pol_t[] pt, int n, int col);
 
-        delegate void voxie_drawmesh_d(ref voxie_frame_t vf, poltex_t[] vt, int vtn, int[] mesh, int meshn, int fillmode, int col);
+        delegate void voxie_drawmesh_d(ref voxie_frame_t vf, poltex[] vt, int vtn, int[] mesh, int meshn, int fillmode, int col);
 
-        delegate void voxie_drawmeshtex_d(ref voxie_frame_t vf, ref tiletype texture, poltex_t[] vt, int vtn, int[] mesh, int meshn,
+        delegate void voxie_drawmeshtex_d(ref voxie_frame_t vf, ref tiletype texture, poltex[] vt, int vtn, int[] mesh, int meshn,
                 int flags, int col);
 
-        delegate void voxie_drawmeshtex_null_d(ref voxie_frame_t vf, int nullptr, poltex_t[] vt, int vtn, int[] mesh, int meshn,
+        delegate void voxie_drawmeshtex_null_d(ref voxie_frame_t vf, int nullptr, poltex[] vt, int vtn, int[] mesh, int meshn,
                 int flags, int col);
 
         delegate void voxie_drawsph_d(ref voxie_frame_t vf, float fx, float fy, float fz, float rad,
@@ -321,181 +248,67 @@ namespace Voxon
         static extern bool FreeLibrary(IntPtr hModule);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Ansi)]
-        private static extern IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
+        static private extern IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
         #endregion
 
         #region delegate_instances
         // Operation
-        static voxie_loadini_int_d voxie_loadini_int;
-        static voxie_init_d voxie_init;
-        static voxie_uninit_int_d voxie_uninit_int;
-        static voxie_breath_d voxie_breath;
-        static voxie_getvw_d voxie_getvw;
-        static voxie_quitloop_d voxie_quitloop;
-        static voxie_klock_d voxie_klock;
-        static voxie_keystat_d voxie_keystat;
-        static voxie_keyread_d voxie_keyread;
-        static voxie_doscreencap_d voxie_doscreencap;
-        static voxie_setview_d voxie_setview;
-        static voxie_frame_start_d voxie_frame_start;
-        static voxie_frame_end_d voxie_frame_end;
-        static voxie_setleds_d voxie_setleds;
-        static voxie_drawvox_d voxie_drawvox;
-        static voxie_drawbox_d voxie_drawbox;
-        static voxie_drawlin_d voxie_drawlin;
-        static voxie_drawpol_d voxie_drawpol;
-        static voxie_drawmeshtex_d voxie_drawmeshtex;
-        static voxie_drawmeshtex_null_d voxie_drawmeshtex_null;
-        static voxie_drawsph_d voxie_drawsph;
-        static voxie_drawcone_d voxie_drawcone;
-        static voxie_drawspr_d voxie_drawspr;
-        static voxie_printalph_d voxie_printalph;
-        static voxie_drawcube_d voxie_drawcube;
-        static voxie_drawheimap_d voxie_drawheimap;
-        static voxie_playsound_d voxie_playsound;
-        static voxie_xbox_read_d voxie_xbox_read;
-        static voxie_xbox_write_d voxie_xbox_write;
+        voxie_loadini_int_d voxie_loadini_int;
+        voxie_init_d voxie_init;
+        voxie_uninit_int_d voxie_uninit_int;
+        voxie_breath_d voxie_breath;
+        voxie_getvw_d voxie_getvw;
+        voxie_quitloop_d voxie_quitloop;
+        voxie_klock_d voxie_klock;
+        voxie_keystat_d voxie_keystat;
+        voxie_keyread_d voxie_keyread;
+        voxie_doscreencap_d voxie_doscreencap;
+        voxie_setview_d voxie_setview;
+        voxie_frame_start_d voxie_frame_start;
+        voxie_frame_end_d voxie_frame_end;
+        voxie_setleds_d voxie_setleds;
+        voxie_drawvox_d voxie_drawvox;
+        voxie_drawbox_d voxie_drawbox;
+        voxie_drawlin_d voxie_drawlin;
+        voxie_drawpol_d voxie_drawpol;
+        voxie_drawmeshtex_d voxie_drawmeshtex;
+        voxie_drawmeshtex_null_d voxie_drawmeshtex_null;
+        voxie_drawsph_d voxie_drawsph;
+        voxie_drawcone_d voxie_drawcone;
+        voxie_drawspr_d voxie_drawspr;
+        voxie_printalph_d voxie_printalph;
+        voxie_drawcube_d voxie_drawcube;
+        voxie_drawheimap_d voxie_drawheimap;
+        voxie_playsound_d voxie_playsound;
+        voxie_xbox_read_d voxie_xbox_read;
+        voxie_xbox_write_d voxie_xbox_write;
 
         // Debug Functions
-        static voxie_debug_print6x8_d voxie_debug_print6x8;
-        static voxie_debug_drawpix_d voxie_debug_drawpix;
-        static voxie_debug_drawhlin_d voxie_debug_drawhlin;
-        static voxie_debug_drawline_d voxie_debug_drawline;
-        static voxie_debug_drawcirc_d voxie_debug_drawcirc;
-        static voxie_debug_drawrectfill_d voxie_debug_drawrectfill;
-        static voxie_debug_drawcircfill_d voxie_debug_drawcircfill;
+        voxie_debug_print6x8_d voxie_debug_print6x8;
+        voxie_debug_drawpix_d voxie_debug_drawpix;
+        voxie_debug_drawhlin_d voxie_debug_drawhlin;
+        voxie_debug_drawline_d voxie_debug_drawline;
+        voxie_debug_drawcirc_d voxie_debug_drawcirc;
+        voxie_debug_drawrectfill_d voxie_debug_drawrectfill;
+        voxie_debug_drawcircfill_d voxie_debug_drawcircfill;
 
         #endregion
 
         #region runtime_dll
-        static string dll = "";
-        static IntPtr Handle = IntPtr.Zero;
+        string dll = "";
+        IntPtr Handle = IntPtr.Zero;
         #endregion
 
         #region runtime_values
-        private static voxie_wind_t vw;
-        private static voxie_frame_t vf;
-        private static voxie_inputs_t ins;
-        private static xbox_input[] controllers = new xbox_input[MAXCONTROLLERS];
-        private static bool b_initialised = false;
+        private voxie_wind_t vw;
+        private voxie_frame_t vf;
+        private voxie_inputs_t ins;
+        private xbox_input[] controllers = new xbox_input[MAXCONTROLLERS];
+        private bool b_initialised = false;
         #endregion
 
-        #region public_functions
-        #region dll_control
-        public static void Load()
-        {
-            try
-            {
-                if (!isLoaded())
-                {
-                    if (dll == "")
-                    {
-                        var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon");
-                        if (_dll != null)
-                        {
-                            dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Path") + "voxiebox.dll";
-                        }
-
-
-                        if (dll == "")
-                        {
-                            string[] paths = Environment.GetEnvironmentVariable("Path").Split(';');
-
-                            foreach (var path in paths)
-                            {
-                                if (File.Exists(path + "\\voxiebox.dll"))
-                                {
-                                    dll = path + "\\voxiebox.dll";
-                                }
-                            }
-                        }
-
-                        if (dll == "")
-                        {
-                            if (File.Exists("voxiebox.dll"))
-                            {
-                                dll = "voxiebox.dll";
-                            }
-                            else
-                            {
-                                log("DLL not found");
-                            }
-                        }
-                    }
-                    //Load DLL
-                    Handle = LoadLibrary(dll);
-                    if (Handle == IntPtr.Zero)
-                    {
-                        int errorCode = Marshal.GetLastWin32Error();
-                        throw new Exception(string.Format("Failed to load library (ErrorCode: {0}). Path = {1}", errorCode, dll));
-                    }
-                }
-                else
-                {
-                    log("VX.dll already loaded");
-                }
-            }
-            catch (Exception e)
-            {
-                log(e.Message);
-            }
-
-
-            // Set up function delegates
-            setup_delegates(Handle);
-        }
-
-        public static void Initialise()
-        {
-            if (!isActive())
-            {
-                // Refresh components
-                vw = new voxie_wind_t();
-                vf = new voxie_frame_t();
-                ins = new voxie_inputs_t();
-
-                // Initialise Box
-                voxie_loadini_int(ref vw);
-
-                // If we are operating on a spinning display, set circular clip shape
-                if(vw.helixtyp != -1)
-                {
-                    vw.clipshape = 1;
-                }
-
-                voxie_init(ref vw);
-
-                // Set Up Controllers (now the box is running)
-                load_xbox_controllers();
-
-                b_initialised = true;
-            }
-        }
-
-        public static void Unload()
-        {
-            if (isLoaded())
-            {
-                try
-                {
-                    if (isInitialised())
-                    {
-                        Shutdown();
-                    }
-
-                    while (FreeLibrary(Handle))
-                    { }
-
-                    Handle = IntPtr.Zero;
-                }
-                catch (Exception e)
-                {
-                    log(e.Message);
-                }
-            }
-        }
-
-        static void setup_delegates(IntPtr Handle)
+        #region runtime_functions
+        void setup_delegates(IntPtr Handle)
         {
             if (!isLoaded()) return;
 
@@ -607,25 +420,138 @@ namespace Voxon
         }
         #endregion
 
+        #region public_functions
+        #region dll_control
+
+        public override void Load()
+        {
+            try
+            {
+                if (!isLoaded())
+                {
+                    if (dll == "")
+                    {
+                        var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon");
+                        if (_dll != null)
+                        {
+                            dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Path") + "voxiebox.dll";
+                        }
+
+
+                        if (dll == "")
+                        {
+                            string[] paths = Environment.GetEnvironmentVariable("Path").Split(';');
+
+                            foreach (var path in paths)
+                            {
+                                if (File.Exists(path + "\\voxiebox.dll"))
+                                {
+                                    dll = path + "\\voxiebox.dll";
+                                }
+                            }
+                        }
+
+                        if (dll == "")
+                        {
+                            if (File.Exists("voxiebox.dll"))
+                            {
+                                dll = "voxiebox.dll";
+                            }
+                            else
+                            {
+                                LogToFile("DLL not found");
+                            }
+                        }
+                    }
+                    //Load DLL
+                    Handle = LoadLibrary(dll);
+                    if (Handle == IntPtr.Zero)
+                    {
+                        int errorCode = Marshal.GetLastWin32Error();
+                        throw new Exception(string.Format("Failed to load library (ErrorCode: {0}). Path = {1}", errorCode, dll));
+                    }
+                }
+                else
+                {
+                    LogToFile("VX.dll already loaded");
+                }
+            }
+            catch (Exception e)
+            {
+                LogToFile(e.Message);
+            }
+
+
+            // Set up function delegates
+            setup_delegates(Handle);
+        }
+
+        public override void Initialise()
+        {
+            if (!isActive())
+            {
+                // Refresh components
+                vw = new voxie_wind_t();
+                vf = new voxie_frame_t();
+                ins = new voxie_inputs_t();
+
+                // Initialise Box
+                voxie_loadini_int(ref vw);
+
+
+                voxie_init(ref vw);
+
+                // Set Up Controllers (now the box is running)
+                load_xbox_controllers();
+
+                b_initialised = true;
+            }
+        }
+
+        public override void Unload()
+        {
+            if (isLoaded())
+            {
+                try
+                {
+                    if (isInitialised())
+                    {
+                        Shutdown();
+                    }
+
+                    while (FreeLibrary(Handle))
+                    { }
+
+                    Handle = IntPtr.Zero;
+                }
+                catch (Exception e)
+                {
+                    LogToFile(e.Message);
+                }
+            }
+        }
+
+        #endregion
+
         #region dll_status
-        public static bool isLoaded()
+        public override bool isLoaded()
         {
             return (Handle != IntPtr.Zero);
         }
 
-        public static bool isInitialised()
+        public override bool isInitialised()
         {
             return b_initialised;
         }
 
-        static bool isActive()
+        bool isActive()
         {
             return (Handle != IntPtr.Zero) && b_initialised;
         }
         #endregion
 
         #region device_calls
-        public static void Shutdown()
+        public override void Shutdown()
         {
             if (!isActive()) return;
 
@@ -645,11 +571,11 @@ namespace Voxon
             }
             catch (Exception e)
             {
-                log(e.Message);
+                LogToFile(e.Message);
             }
         }
 
-        public static bool start_frame()
+        public override bool FrameStart()
         {
             if (!isActive()) return false;
 
@@ -664,7 +590,7 @@ namespace Voxon
             return has_breath;
         }
 
-        public static void end_frame()
+        public override void FrameEnd()
         {
             if (!isActive()) return;
 
@@ -675,7 +601,8 @@ namespace Voxon
         #endregion
 
         #region camera_controls
-        private static void set_is_circular(bool is_circular)
+        // TODO: Spinning Not Currently Used
+        private void set_is_circular(bool is_circular)
         {
             if (!isActive()) return;
 
@@ -691,7 +618,7 @@ namespace Voxon
             
         }
 
-        public static void set_aspect_ratio(float aspx, float aspy, float aspz)
+        public override void SetAspectRatio(float aspx, float aspy, float aspz)
         {
             if (aspx <= 0 || aspy <= 0 || aspz <= 0)
                 return;
@@ -701,7 +628,7 @@ namespace Voxon
             vw.aspz = aspz;
         }
 
-        public static float[] get_aspect_ratio()
+        public override float[] GetAspectRatio()
         {
             float[] asp = new float[3];
             // Uninitialised
@@ -723,67 +650,67 @@ namespace Voxon
         #endregion
 
         #region drawables
-        public static void draw_guidelines()
+        public override void DrawGuidelines()
         {
             if (!isActive()) return;
             voxie_drawbox(ref vf, -vw.aspx + 1e-3f, -vw.aspy + 1e-3f, -vw.aspz, +vw.aspx - 1e-3f, +vw.aspy - 1e-3f, +vw.aspz, 1, 0xffffff);
         }
 
-        public static void draw_letters(ref point3d pp, ref point3d pr, ref point3d pd, Int32 col, byte[] text)
+        public override void DrawLetters(ref point3d pp, ref point3d pr, ref point3d pd, Int32 col, byte[] text)
         {
             if (!isActive()) return;
             voxie_printalph(ref vf, ref pp, ref pr, ref pd, col, text);
         }
 
-        public static void draw_box(ref point3d min, ref point3d max, int fill, int colour)
+        public override void DrawBox(ref point3d min, ref point3d max, int fill, int colour)
         {
             if (!isActive()) return;
             voxie_drawbox(ref vf, min.x, min.y, min.z, max.x, max.y, max.z, fill, colour);
         }
 
-        public static void draw_textured_mesh(ref tiletype texture, poltex_t[] vertices, int vertice_count, int[] indices, int indice_count, int flags)
+        public override void DrawTexturedMesh(ref tiletype texture, poltex[] vertices, int vertice_count, int[] indices, int indice_count, int flags)
         {
             if (!isActive()) return;
             voxie_drawmeshtex(ref vf, ref texture, vertices, vertice_count, indices, indice_count, flags, TEXTURE_BACK_COLOUR);
         }
 
-        public static void draw_untextured_mesh(poltex_t[] vertices, int vertice_count, int[] indices, int indice_count, int flags, int colour)
+        public override void DrawUntexturedMesh(poltex[] vertices, int vertice_count, int[] indices, int indice_count, int flags, int colour)
         {
             if (!isActive()) return;
             voxie_drawmeshtex_null(ref vf, 0, vertices, vertice_count, indices, indice_count, flags, colour);
         }
 
-        public static void draw_sphere(ref point3d position, float radius, int issol, int colour)
+        public override void DrawSphere(ref point3d position, float radius, int issol, int colour)
         {
             if (!isActive()) return;
             voxie_drawsph(ref vf, position.x, position.y, position.z, radius, issol, colour);
         }
 
-        public static void draw_voxel(ref point3d position, int col)
+        public override void DrawVoxel(ref point3d position, int col)
         {
             if (!isActive()) return;
             voxie_drawvox(ref vf, position.x, position.y, position.z, col);
         }
 
-        public static void draw_cube(ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, int flags, Int32 col)
+        public override void DrawCube(ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, int flags, Int32 col)
         {
             if (!isActive()) return;
             voxie_drawcube(ref vf, ref pp, ref pr, ref pd, ref pf, flags, col);
         }
 
-        public static void draw_line(ref point3d min, ref point3d max, int col)
+        public override void DrawLine(ref point3d min, ref point3d max, int col)
         {
             if (!isActive()) return;
             voxie_drawlin(ref vf, min.x, min.y, min.z, max.x, max.y, max.z, col);
         }
 
-        public static void draw_polygon(pol_t[] pt, int pt_count, Int32 col)
+        public override void DrawPolygon(pol_t[] pt, int pt_count, Int32 col)
         {
             if (!isActive()) return;
             voxie_drawpol(ref vf, pt, pt_count, col);
         }
 
-        public static void draw_heightmap(ref tiletype texture, ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, Int32 colorkey, int min_height, int flags)
+        public override void DrawHeightmap(ref tiletype texture, ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, Int32 colorkey, int min_height, int flags)
         {
             if (!isActive()) return;
             voxie_drawheimap(ref vf, ref texture , ref pp, ref pr, ref pd, ref pf, colorkey, min_height, flags);
@@ -792,33 +719,33 @@ namespace Voxon
 
         #region input
 
-        public static int getkey(int i)
+        public override int GetKeyState(int i)
         {
             if (!isActive()) return 0;
 
             return voxie_keystat(i);
         }
 
-        public static bool get_key(int keycode)
+        public override bool GetKey(int keycode)
         {
             if (!isActive()) return false;
             int ks = voxie_keystat(keycode);
             return ks != 0;
         }
 
-        public static bool get_key_up(int keycode)
+        public override bool GetKeyUp(int keycode)
         {
             if (!isActive()) return false;
             return voxie_keystat(keycode) == 0;
         }
 
-        public static bool get_key_down(int keycode)
+        public override bool GetKeyDown(int keycode)
         {
             if (!isActive()) return false;
             return voxie_keystat(keycode) == 1;
         }
 
-        public static float[] get_mouse_position()
+        public override float[] GetMousePosition()
         {
             if (!isActive()) return null;
             float[] pos = new float[3];
@@ -827,13 +754,13 @@ namespace Voxon
             return pos;
         }
 
-        public static bool get_mouse_button(int button)
+        public override bool GetMouseButton(int button)
         {
             if (!isActive()) return false;
             return (ins.bstat & button) != 0;
         }
 
-        public static bool get_mouse_button_down(int button)
+        public override bool GetMouseButtonDown(int button)
         {
             if (!isActive()) return false;
             int button_state = ins.bstat & button;
@@ -847,7 +774,7 @@ namespace Voxon
 
         }
 
-        public static void update_xbox_controllers()
+        void update_xbox_controllers()
         {
             if (!isActive()) return;
             for (int idx = 0; idx < MAXCONTROLLERS; ++idx)
@@ -857,7 +784,7 @@ namespace Voxon
             }
         }
 
-        private static void load_xbox_controllers()
+        void load_xbox_controllers()
         {
             for (int idx = 0; idx < MAXCONTROLLERS; ++idx)
             {
@@ -867,25 +794,25 @@ namespace Voxon
             }
         }
 
-        public static bool get_button(int button, int player)
+        public override bool GetButton(int button, int player)
         {
             if (!isActive()) return false;
             return (controllers[player].input.but & button) > 0;
         }
 
-        public static bool get_button_down(int button, int player)
+        public override bool GetButtonDown(int button, int player)
         {
             if (!isActive()) return false;
             return ((controllers[player].input.but & button) > 0 && (controllers[player].last_frame.but & button) == 0);
         }
 
-        public static bool get_button_up(int button, int player)
+        public override bool GetButtonUp(int button, int player)
         {
             if (!isActive()) return false;
             return ((controllers[player].input.but & button) == 0 && (controllers[player].last_frame.but & button) > 0);
         }
 
-        public static float get_axis(int axis, int player)
+        public override float GetAxis(int axis, int player)
         {
             if (!isActive()) return 0;
             if (axis == 1)
@@ -916,7 +843,7 @@ namespace Voxon
         #endregion
 
         #region sound
-        public static float get_volume()
+        public override float GetVolume()
         {
             return vw.sndfx_vol / 65535.0f;
         }
@@ -924,7 +851,7 @@ namespace Voxon
 
         #region logging
         // LOGGING
-        public static void log(string msg)
+        public override void LogToFile(string msg)
         {
             var FS = File.AppendText("exception.log");
             
@@ -932,9 +859,7 @@ namespace Voxon
             FS.Close();
         }
 
-        public static void debug_log(int[] pos, string Text) { debug_log(pos[0], pos[1], Text); }
-
-        public static void debug_log(int x, int y, string Text)
+        public override void LogToScreen(int x, int y, string Text)
         {
             if (!isActive()) return;
             // Get Char Values for String
@@ -950,7 +875,7 @@ namespace Voxon
         #endregion
 
         #region class_functions
-        ~DLL()
+        ~Runtime()
         {
             Shutdown();
         }
