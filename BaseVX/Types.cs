@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Voxon
 {
+	/*
     #region public_structures
     [Serializable]
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -50,7 +51,7 @@ namespace Voxon
         public float x, y, z, u, v;
         public int col;
 
-        override public string ToString()
+        public override string ToString()
         {
             return "(" + x + ", " + y + ", " + z + ")-(" + u + ", " + v + ") : " + col;
         }
@@ -79,4 +80,5 @@ namespace Voxon
         public IntPtr height, width;          // width & height of texture
     }
     #endregion
+	*/
 }
