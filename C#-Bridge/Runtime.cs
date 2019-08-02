@@ -15,7 +15,7 @@ namespace Voxon
 
         #region private_structures
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        struct voxie_xbox_t
+		internal struct voxie_xbox_t
         {
             public short but;       //XBox controller buttons (same layout as XInput)
             public short lt, rt;    //XBox controller left&right triggers (0..255)
@@ -25,13 +25,13 @@ namespace Voxon
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        struct point2d
+		internal struct point2d
         {
             public float x, y;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        struct voxie_disp_t
+		internal struct voxie_disp_t
         {
             //settings for quadrilateral (keystone) compensation (use voxiedemo mode 2 to calibrate)
             public point2d keyst0, keyst1, keyst2, keyst3, keyst4, keyst5, keyst6, keyst7;
@@ -41,7 +41,7 @@ namespace Voxon
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        struct voxie_wind_t
+		internal struct voxie_wind_t
         {
             //Emulation
             public int useemu;             //0=Voxiebox, 1=emulation in 2D window (representative of actual view on HW), 2=emulation in 2D window (made for 2D display)
@@ -57,7 +57,7 @@ namespace Voxon
             public int usecol;             //0=mono white, 1=full color time multiplexed,
                                            //-1=red, -2=green, -3=yellow, -4=blue, -5=magenta, -6=cyan
             public int dispnum;            //number of displays to search for and use (typically 1)
-            public int HighLumenDangerProtect; //if enabled (nonzero), protects ledr/g/b from going too high
+            public int bitspervol; //if enabled (nonzero), protects ledr/g/b from going too high
             public voxie_disp_t disp0, disp1, disp2; //see voxie_disp_t
 
             //Actuator
@@ -96,7 +96,7 @@ namespace Voxon
 
             //Misc.
             public int isrecording;        //0=normally, 1 when .REC file recorder is in progress (written by DLL)
-            public int excl_mouse;         //1=exclusive mouse, 0=not
+            public int hacks;         //1=exclusive mouse, 0=not
             public int dispcur;            //current display selected in menus {0..dispnum-1}
 
             //Obsolete
@@ -104,7 +104,7 @@ namespace Voxon
             public double phase;           //phase lock {0.0..1.0} (can be updated on later calls to voxie_init()); obsolete - not used by current hardware
 
 			//Helix
-			public int reserved2;
+			int thread_override_hack; //0:default thread behavior, 1..n:force n threads for voxie_drawspr()/voxie_drawheimap(); bound to: {1 .. #CPU cores (1 less on hw)}
 			public int motortyp; //0=Old DC brush motor, 1=ClearPath using Frequency Input, 2=AU brushless airplane motor
 			public int clipshape; //0=rectangle (vw.aspx,vw.aspy), 1=circle (vw.aspr)
 			public int goalrpm, cpmaxrpm, ianghak0, ianghak1, ianghak2;
@@ -117,7 +117,7 @@ namespace Voxon
 		}
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        struct voxie_frame_t
+		internal struct voxie_frame_t
         {
             public IntPtr f;              //Pointer to top-left-up of current frame to draw
             public IntPtr p;              //Number of bytes per horizontal line (x)
@@ -132,12 +132,12 @@ namespace Voxon
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        struct voxie_inputs_t
+		internal struct voxie_inputs_t
         {
             public int bstat, obstat, dmousx, dmousy, dmousz;
         }
 
-        struct tri_t
+		internal struct tri_t
         {
             public float x0, y0, z0;
             public int n0;
@@ -147,96 +147,96 @@ namespace Voxon
             public int n2;
         }
 
-        // Controls
-        private struct xbox_input
+		// Controls
+		internal struct xbox_input
         {
             public voxie_xbox_t input;
             public voxie_xbox_t offset;
             public voxie_xbox_t last_frame;
         }
 
-        #endregion
+		#endregion
 
-        #region delegate_functions
-        delegate void voxie_load_d(ref voxie_wind_t vw);
+		#region delegate_functions
+		internal delegate void voxie_load_d(ref voxie_wind_t vw);
 
-        delegate void voxie_loadini_int_d(ref voxie_wind_t vw);
+		internal delegate void voxie_loadini_int_d(ref voxie_wind_t vw);
 
-        delegate void voxie_getvw_d(ref voxie_wind_t vw);
+		internal delegate void voxie_getvw_d(ref voxie_wind_t vw);
 
-        delegate int voxie_init_d(ref voxie_wind_t vw);
+		internal delegate int voxie_init_d(ref voxie_wind_t vw);
 
-        delegate void voxie_uninit_int_d(int id);
+		internal delegate void voxie_uninit_int_d(int id);
 
-        delegate int voxie_breath_d(ref voxie_inputs_t ins);
+		internal delegate int voxie_breath_d(ref voxie_inputs_t ins);
 
-        delegate void voxie_quitloop_d();
+		internal delegate void voxie_quitloop_d();
 
-        delegate double voxie_klock_d();
+		internal delegate double voxie_klock_d();
 
-        delegate int voxie_keystat_d(int i);
+		internal delegate int voxie_keystat_d(int i);
 
-        delegate int voxie_keyread_d();
+		internal delegate int voxie_keyread_d();
 
-        delegate void voxie_doscreencap_d();
+		internal delegate void voxie_doscreencap_d();
 
-        delegate void voxie_setview_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1, float z1);
+		internal delegate void voxie_setview_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1, float z1);
 
-        delegate int voxie_frame_start_d(ref voxie_frame_t vf);
+		internal delegate int voxie_frame_start_d(ref voxie_frame_t vf);
 
-        delegate void voxie_frame_end_d();
+		internal delegate void voxie_frame_end_d();
 
-        delegate void voxie_setleds_d(int r, int g, int b);
+		internal delegate void voxie_setleds_d(int r, int g, int b);
 
-        delegate void voxie_drawvox_d(ref voxie_frame_t vf, float fx, float fy, float fz, int col);
+		internal delegate void voxie_drawvox_d(ref voxie_frame_t vf, float fx, float fy, float fz, int col);
 
-        delegate void voxie_drawbox_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1,
+		internal delegate void voxie_drawbox_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1,
             float z1, int fillmode, int col);
 
-        delegate void voxie_drawlin_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1, float z1, int col);
+		internal delegate void voxie_drawlin_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1, float z1, int col);
 
-        delegate void voxie_drawpol_d(ref voxie_frame_t vf, pol_t[] pt, int n, int col);
+		internal delegate void voxie_drawpol_d(ref voxie_frame_t vf, pol_t[] pt, int n, int col);
 
-        delegate void voxie_drawmesh_d(ref voxie_frame_t vf, poltex[] vt, int vtn, int[] mesh, int meshn, int fillmode, int col);
+		internal delegate void voxie_drawmesh_d(ref voxie_frame_t vf, poltex[] vt, int vtn, int[] mesh, int meshn, int fillmode, int col);
 
-        delegate void voxie_drawmeshtex_d(ref voxie_frame_t vf, ref tiletype texture, poltex[] vt, int vtn, int[] mesh, int meshn,
+		internal delegate void voxie_drawmeshtex_d(ref voxie_frame_t vf, ref tiletype texture, poltex[] vt, int vtn, int[] mesh, int meshn,
                 int flags, int col);
 
-        delegate void voxie_drawmeshtex_null_d(ref voxie_frame_t vf, int nullptr, poltex[] vt, int vtn, int[] mesh, int meshn,
+		internal delegate void voxie_drawmeshtex_null_d(ref voxie_frame_t vf, int nullptr, poltex[] vt, int vtn, int[] mesh, int meshn,
                 int flags, int col);
 
-        delegate void voxie_drawsph_d(ref voxie_frame_t vf, float fx, float fy, float fz, float rad,
+		internal delegate void voxie_drawsph_d(ref voxie_frame_t vf, float fx, float fy, float fz, float rad,
                 int issol, int col);
 
-        delegate void voxie_drawcone_d(ref voxie_frame_t vf, float x0, float y0, float z0, float r0, float x1,
+		internal delegate void voxie_drawcone_d(ref voxie_frame_t vf, float x0, float y0, float z0, float r0, float x1,
             float y1, float z1, float r1, int issol, int col);
 
-        delegate int voxie_drawspr_d(ref voxie_frame_t vf, [MarshalAs(UnmanagedType.LPStr)] string st,
+		internal delegate int voxie_drawspr_d(ref voxie_frame_t vf, [MarshalAs(UnmanagedType.LPStr)] string st,
             ref point3d p, ref point3d r, ref point3d d, ref point3d f, int col);
 
-        delegate void voxie_printalph_d(ref voxie_frame_t vf, ref point3d p, ref point3d r, ref point3d d,
+		internal delegate void voxie_printalph_d(ref voxie_frame_t vf, ref point3d p, ref point3d r, ref point3d d,
             int col, byte[] st);
 
-        delegate void voxie_drawcube_d(ref voxie_frame_t vf, ref point3d p, ref point3d r, ref point3d d,
+		internal delegate void voxie_drawcube_d(ref voxie_frame_t vf, ref point3d p, ref point3d r, ref point3d d,
             ref point3d f, int fillmode, int col);
 
-        delegate float voxie_drawheimap_d(ref voxie_frame_t vf, ref tiletype texture,
+		internal delegate float voxie_drawheimap_d(ref voxie_frame_t vf, ref tiletype texture,
             ref point3d p, ref point3d r, ref point3d d, ref point3d f, int colorkey, int heimin, int flags);
 
-        delegate void voxie_playsound_d([MarshalAs(UnmanagedType.LPStr)] string st, int chan, int volperc0,
+		internal delegate void voxie_playsound_d([MarshalAs(UnmanagedType.LPStr)] string st, int chan, int volperc0,
             int volperc1, float frqmul);
 
-        delegate int voxie_xbox_read_d(int id, ref voxie_xbox_t vx);
+		internal delegate int voxie_xbox_read_d(int id, ref voxie_xbox_t vx);
 
-        delegate void voxie_xbox_write_d(int id, float lmot, float rmot);
+		internal delegate void voxie_xbox_write_d(int id, float lmot, float rmot);
 
-        delegate void voxie_debug_print6x8_d     (int x, int y, int fcol, int bcol, byte[] fmt);
-        delegate void voxie_debug_drawpix_d      (int x, int y, int col);
-        delegate void voxie_debug_drawhlin_d     (int x0, int x1, int y, int col);
-        delegate void voxie_debug_drawline_d     (float x0, float y0, float x1, float y1, int col);
-        delegate void voxie_debug_drawcirc_d     (int xc, int yc, int r, int col);
-        delegate void voxie_debug_drawrectfill_d (int x0, int y0, int x1, int y1, int col);
-        delegate void voxie_debug_drawcircfill_d (int x, int y, int r, int col);
+		internal delegate void voxie_debug_print6x8_d     (int x, int y, int fcol, int bcol, byte[] fmt);
+		internal delegate void voxie_debug_drawpix_d      (int x, int y, int col);
+		internal delegate void voxie_debug_drawhlin_d     (int x0, int x1, int y, int col);
+		internal delegate void voxie_debug_drawline_d     (float x0, float y0, float x1, float y1, int col);
+		internal delegate void voxie_debug_drawcirc_d     (int xc, int yc, int r, int col);
+		internal delegate void voxie_debug_drawrectfill_d (int x0, int y0, int x1, int y1, int col);
+		internal delegate void voxie_debug_drawcircfill_d (int x, int y, int r, int col);
 
         #endregion
 
@@ -253,58 +253,58 @@ namespace Voxon
 
         #region delegate_instances
         // Operation
-        voxie_loadini_int_d voxie_loadini_int;
-        voxie_init_d voxie_init;
-        voxie_uninit_int_d voxie_uninit_int;
-        voxie_breath_d voxie_breath;
-        voxie_getvw_d voxie_getvw;
-        voxie_quitloop_d voxie_quitloop;
-        voxie_klock_d voxie_klock;
-        voxie_keystat_d voxie_keystat;
-        voxie_keyread_d voxie_keyread;
-        voxie_doscreencap_d voxie_doscreencap;
-        voxie_setview_d voxie_setview;
-        voxie_frame_start_d voxie_frame_start;
-        voxie_frame_end_d voxie_frame_end;
-        voxie_setleds_d voxie_setleds;
-        voxie_drawvox_d voxie_drawvox;
-        voxie_drawbox_d voxie_drawbox;
-        voxie_drawlin_d voxie_drawlin;
-        voxie_drawpol_d voxie_drawpol;
-        voxie_drawmeshtex_d voxie_drawmeshtex;
-        voxie_drawmeshtex_null_d voxie_drawmeshtex_null;
-        voxie_drawsph_d voxie_drawsph;
-        voxie_drawcone_d voxie_drawcone;
-        voxie_drawspr_d voxie_drawspr;
-        voxie_printalph_d voxie_printalph;
-        voxie_drawcube_d voxie_drawcube;
-        voxie_drawheimap_d voxie_drawheimap;
-        voxie_playsound_d voxie_playsound;
-        voxie_xbox_read_d voxie_xbox_read;
-        voxie_xbox_write_d voxie_xbox_write;
+        internal voxie_loadini_int_d voxie_loadini_int;
+		internal voxie_init_d voxie_init;
+		internal voxie_uninit_int_d voxie_uninit_int;
+		internal voxie_breath_d voxie_breath;
+		internal voxie_getvw_d voxie_getvw;
+		internal voxie_quitloop_d voxie_quitloop;
+		internal voxie_klock_d voxie_klock;
+		internal voxie_keystat_d voxie_keystat;
+		internal voxie_keyread_d voxie_keyread;
+		internal voxie_doscreencap_d voxie_doscreencap;
+		internal voxie_setview_d voxie_setview;
+		internal voxie_frame_start_d voxie_frame_start;
+		internal voxie_frame_end_d voxie_frame_end;
+		internal voxie_setleds_d voxie_setleds;
+		internal voxie_drawvox_d voxie_drawvox;
+		internal voxie_drawbox_d voxie_drawbox;
+		internal voxie_drawlin_d voxie_drawlin;
+		internal voxie_drawpol_d voxie_drawpol;
+		internal voxie_drawmeshtex_d voxie_drawmeshtex;
+		internal voxie_drawmeshtex_null_d voxie_drawmeshtex_null;
+		internal voxie_drawsph_d voxie_drawsph;
+		internal voxie_drawcone_d voxie_drawcone;
+		internal voxie_drawspr_d voxie_drawspr;
+		internal voxie_printalph_d voxie_printalph;
+		internal voxie_drawcube_d voxie_drawcube;
+		internal voxie_drawheimap_d voxie_drawheimap;
+		internal voxie_playsound_d voxie_playsound;
+		internal voxie_xbox_read_d voxie_xbox_read;
+		internal voxie_xbox_write_d voxie_xbox_write;
 
-        // Debug Functions
-        voxie_debug_print6x8_d voxie_debug_print6x8;
-        voxie_debug_drawpix_d voxie_debug_drawpix;
-        voxie_debug_drawhlin_d voxie_debug_drawhlin;
-        voxie_debug_drawline_d voxie_debug_drawline;
-        voxie_debug_drawcirc_d voxie_debug_drawcirc;
-        voxie_debug_drawrectfill_d voxie_debug_drawrectfill;
-        voxie_debug_drawcircfill_d voxie_debug_drawcircfill;
+		// Debug Functions
+		internal voxie_debug_print6x8_d voxie_debug_print6x8;
+		internal voxie_debug_drawpix_d voxie_debug_drawpix;
+		internal voxie_debug_drawhlin_d voxie_debug_drawhlin;
+		internal voxie_debug_drawline_d voxie_debug_drawline;
+		internal voxie_debug_drawcirc_d voxie_debug_drawcirc;
+		internal voxie_debug_drawrectfill_d voxie_debug_drawrectfill;
+		internal voxie_debug_drawcircfill_d voxie_debug_drawcircfill;
 
         #endregion
 
         #region runtime_dll
-        string dll = "";
-        IntPtr Handle = IntPtr.Zero;
-        #endregion
+        internal string dll = "";
+        internal IntPtr Handle = IntPtr.Zero;
+		#endregion
 
-        #region runtime_values
-        private voxie_wind_t vw;
-        private voxie_frame_t vf;
-        private voxie_inputs_t ins;
-        private xbox_input[] controllers = new xbox_input[MAXCONTROLLERS];
-        private bool b_initialised = false;
+		#region runtime_values
+		internal voxie_wind_t vw;
+		internal voxie_frame_t vf;
+		internal voxie_inputs_t ins;
+		internal xbox_input[] controllers = new xbox_input[MAXCONTROLLERS];
+		internal bool b_initialised = false;
         #endregion
 
         #region runtime_functions
@@ -431,52 +431,16 @@ namespace Voxon
                 {
                     if (dll == "")
                     {
-						// First look for local dll (in case of override)
-						if (dll == "")
-						{
-							if (File.Exists("voxiebox.dll"))
-							{
-								dll = "voxiebox.dll";
-							}
-						}
-
-						// Next check the registry
-						if (dll == "")
-						{
-							var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon");
-							if (_dll != null)
-							{
-								dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Path") + "voxiebox.dll";
-							}
-						}
-
-						// Finally check the path variables
-                        if (dll == "")
-                        {
-                            string[] paths = Environment.GetEnvironmentVariable("Path").Split(';');
-
-                            foreach (var path in paths)
-                            {
-                                if (File.Exists(path + "\\voxiebox.dll"))
-                                {
-                                    dll = path + "\\voxiebox.dll";
-                                }
-                            }
-                        }
+						dll = GetDLLPath();
 
 						if (dll == "")
 						{
 							LogToFile("DLL not found");
+							throw new Exception(string.Format("DLL not found"));
 						}
-
 					}
-                    //Load DLL
-                    Handle = LoadLibrary(dll);
-                    if (Handle == IntPtr.Zero)
-                    {
-                        int errorCode = Marshal.GetLastWin32Error();
-                        throw new Exception(string.Format("Failed to load library (ErrorCode: {0}). Path = {1}", errorCode, dll));
-                    }
+
+					LoadDLL(dll);
                 }
                 else
                 {
@@ -488,10 +452,57 @@ namespace Voxon
                 LogToFile(e.Message);
             }
 
-
             // Set up function delegates
             setup_delegates(Handle);
         }
+
+		internal string GetDLLPath()
+		{
+			// First look for local dll (in case of override)
+			if (File.Exists("voxiebox.dll"))
+			{
+				dll = "voxiebox.dll";
+			}
+
+			// Next check the registry
+			if (dll == "")
+			{
+				var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon");
+				if (_dll != null)
+				{
+					dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Path") + "voxiebox.dll";
+				}
+			}
+
+			// Finally check the path variables
+			if (dll == "")
+			{
+				string[] paths = Environment.GetEnvironmentVariable("Path").Split(';');
+
+				foreach (var path in paths)
+				{
+					if (File.Exists(path + "\\voxiebox.dll"))
+					{
+						dll = path + "\\voxiebox.dll";
+					}
+				}
+			}
+
+			return dll;
+		}
+
+		internal IntPtr LoadDLL(string path)
+		{
+			//Load DLL
+			Handle = LoadLibrary(path);
+			if (Handle == IntPtr.Zero)
+			{
+				int errorCode = Marshal.GetLastWin32Error();
+				throw new Exception(string.Format("Failed to load library (ErrorCode: {0}). Path = {1}", errorCode, dll));
+			}
+
+			return Handle;
+		}
 
         public void Initialise()
         {
@@ -608,7 +619,6 @@ namespace Voxon
         #endregion
 
         #region camera_controls
-        // TODO: Spinning Not Currently Used
         private void set_is_circular(bool is_circular)
         {
             if (!isActive()) return;
@@ -773,8 +783,6 @@ namespace Voxon
             int button_state = ins.bstat & button;
             int old_button_state = ins.obstat & button;
 
-            // TODO: Need to implement seen-ness if we can't fix disparity between input call and ins update
-            // Possible solution would be to to old_button_state |= button to make it seen
             bool mouse_down = (old_button_state == 0 & button_state != 0);
 
             return mouse_down;
