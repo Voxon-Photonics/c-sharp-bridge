@@ -155,6 +155,12 @@ namespace Voxon
             public voxie_xbox_t last_frame;
         }
 
+		internal struct voxie_nav_t
+		{
+			public float dx, dy, dz; //Space Navigator translation
+			public float ax, ay, az; //Space Navigator rotation
+			public int but; //Space Navigator button status
+		};
 		#endregion
 
 		#region delegate_functions
@@ -227,8 +233,8 @@ namespace Voxon
             int volperc1, float frqmul);
 
 		internal delegate int voxie_xbox_read_d(int id, ref voxie_xbox_t vx);
-
 		internal delegate void voxie_xbox_write_d(int id, float lmot, float rmot);
+		internal delegate int voxie_nav_read_d(int id, ref voxie_nav_t nav);
 
 		internal delegate void voxie_debug_print6x8_d     (int x, int y, int fcol, int bcol, byte[] fmt);
 		internal delegate void voxie_debug_drawpix_d      (int x, int y, int col);
@@ -237,11 +243,11 @@ namespace Voxon
 		internal delegate void voxie_debug_drawcirc_d     (int xc, int yc, int r, int col);
 		internal delegate void voxie_debug_drawrectfill_d (int x0, int y0, int x1, int y1, int col);
 		internal delegate void voxie_debug_drawcircfill_d (int x, int y, int r, int col);
+		
+		#endregion
 
-        #endregion
-
-        #region DLL_imports
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+		#region DLL_imports
+		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         static extern IntPtr LoadLibrary(string libname);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
@@ -282,6 +288,7 @@ namespace Voxon
 		internal voxie_playsound_d voxie_playsound;
 		internal voxie_xbox_read_d voxie_xbox_read;
 		internal voxie_xbox_write_d voxie_xbox_write;
+		internal voxie_nav_read_d voxie_nav_read;
 
 		// Debug Functions
 		internal voxie_debug_print6x8_d voxie_debug_print6x8;
