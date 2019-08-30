@@ -155,7 +155,8 @@ namespace Voxon
             public voxie_xbox_t last_frame;
         }
 
-		internal struct voxie_nav_t
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        internal struct voxie_nav_t
 		{
 			public float dx, dy, dz; //Space Navigator translation
 			public float ax, ay, az; //Space Navigator rotation
@@ -311,6 +312,7 @@ namespace Voxon
 		internal voxie_frame_t vf;
 		internal voxie_inputs_t ins;
 		internal xbox_input[] controllers = new xbox_input[MAXCONTROLLERS];
+        internal voxie_nav_t spacenav = new voxie_nav_t();
 		internal bool b_initialised = false;
         #endregion
 
@@ -369,6 +371,9 @@ namespace Voxon
 
             funcaddr = GetProcAddress(Handle, "voxie_xbox_write");
             voxie_xbox_write = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_xbox_write_d)) as voxie_xbox_write_d;
+
+            funcaddr = GetProcAddress(Handle, "voxie_nav_read");
+            voxie_nav_read = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_nav_read_d)) as voxie_nav_read_d;
 
             funcaddr = GetProcAddress(Handle, "voxie_drawbox");
             voxie_drawbox = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_drawbox_d)) as voxie_drawbox_d;
@@ -528,6 +533,7 @@ namespace Voxon
 
                 // Set Up Controllers (now the box is running)
                 load_xbox_controllers();
+                
 
                 b_initialised = true;
             }
@@ -611,6 +617,8 @@ namespace Voxon
             voxie_setview(ref vf, -vw.aspx, -vw.aspy, -vw.aspz, vw.aspx, vw.aspy, vw.aspz);
 
             update_xbox_controllers();
+
+            update_spacenav();
 
             return has_breath;
         }
@@ -816,6 +824,12 @@ namespace Voxon
             }
         }
 
+        void update_spacenav()
+        {
+            if (!isActive()) return;
+            voxie_nav_read(0, ref spacenav);
+        }
+
         public bool GetButton(int button, int player)
         {
             if (!isActive()) return false;
@@ -861,6 +875,27 @@ namespace Voxon
                         return 0;
                 }
             }
+        }
+
+        public float[] GetSpaceNavPosition()
+        {
+            if (!isActive()) return null;
+            float[] pos = new float[3];
+            pos[0] = spacenav.dx; pos[1] = spacenav.dy; pos[2] = spacenav.dz;
+            return pos;
+        }
+        public float[] GetSpaceNavRotation()
+        {
+            if (!isActive()) return null;
+            float[] pos = new float[3];
+            pos[0] = spacenav.ax; pos[1] = spacenav.ay; pos[2] = spacenav.az;
+            return pos;
+        }
+
+        public bool GetSpaceNavButton(int button)
+        {
+            if (!isActive()) return false;
+            return (spacenav.but & button) != 0;
         }
         #endregion
 
@@ -947,6 +982,11 @@ namespace Voxon
 				"GetButtonDown",
 				"GetButtonUp",
 				"GetAxis",
+
+                // Space Nav
+                "GetSpaceNavPosition",
+                "GetSpaceNavRotation",
+                "GetSpaceNavButton",
 
                 // Audio
                 "GetVolume",

@@ -74,8 +74,9 @@ namespace Voxon
 			Assert.IsNotNull(runtime.voxie_playsound, "voxie_playsound");
 			Assert.IsNotNull(runtime.voxie_xbox_read, "voxie_xbox_read");
 			Assert.IsNotNull(runtime.voxie_xbox_write, "voxie_xbox_write");
-			// Debug Functions
-			Assert.IsNotNull(runtime.voxie_debug_print6x8, "voxie_debug_print6x8");
+            Assert.IsNotNull(runtime.voxie_nav_read, "voxie_nav_read");
+            // Debug Functions
+            Assert.IsNotNull(runtime.voxie_debug_print6x8, "voxie_debug_print6x8");
 			Assert.IsNotNull(runtime.voxie_debug_drawpix, "voxie_debug_drawpix");
 			Assert.IsNotNull(runtime.voxie_debug_drawhlin, "voxie_debug_drawhlin");
 			Assert.IsNotNull(runtime.voxie_debug_drawline, "voxie_debug_drawline");
