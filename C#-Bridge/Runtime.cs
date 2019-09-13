@@ -244,7 +244,7 @@ namespace Voxon
 		internal delegate void voxie_debug_drawcirc_d     (int xc, int yc, int r, int col);
 		internal delegate void voxie_debug_drawrectfill_d (int x0, int y0, int x1, int y1, int col);
 		internal delegate void voxie_debug_drawcircfill_d (int x, int y, int r, int col);
-		internal delegate Int64 voxie_getversion_d		  ();
+		internal delegate long voxie_getversion_d		  ();
 
 
 		#endregion
@@ -307,6 +307,7 @@ namespace Voxon
 
 		#region runtime_dll
 		internal string dll = "";
+		internal string sdk_version = "SDK Not Detected";
         internal IntPtr Handle = IntPtr.Zero;
 		#endregion
 
@@ -489,6 +490,7 @@ namespace Voxon
 				if (_dll != null)
 				{
 					dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Path") + "voxiebox.dll";
+					sdk_version = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Version");
 				}
 			}
 
@@ -936,10 +938,15 @@ namespace Voxon
             voxie_debug_print6x8(x, y, 0xFFFFFF, 0x0, ts); // array);
         }
 
-		public Int64 GetDLLVersion()
+		public long GetDLLVersion()
 		{
 			if (!isLoaded()) return 0;
 			return voxie_getversion();
+		}
+
+		public string GetSDKVersion()
+		{
+			return sdk_version;
 		}
 
 		public HashSet<string> GetFeatures()
@@ -1009,7 +1016,8 @@ namespace Voxon
 				"LogToScreen",
 
 				// Versioning
-				"GetDLLVersion"
+				"GetDLLVersion",
+				"GetSDKVersion"
 			};
 
 			return results;
