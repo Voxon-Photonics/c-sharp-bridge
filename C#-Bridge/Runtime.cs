@@ -244,7 +244,9 @@ namespace Voxon
 		internal delegate void voxie_debug_drawcirc_d     (int xc, int yc, int r, int col);
 		internal delegate void voxie_debug_drawrectfill_d (int x0, int y0, int x1, int y1, int col);
 		internal delegate void voxie_debug_drawcircfill_d (int x, int y, int r, int col);
-		
+		internal delegate Int64 voxie_getversion_d		  ();
+
+
 		#endregion
 
 		#region DLL_imports
@@ -299,11 +301,12 @@ namespace Voxon
 		internal voxie_debug_drawcirc_d voxie_debug_drawcirc;
 		internal voxie_debug_drawrectfill_d voxie_debug_drawrectfill;
 		internal voxie_debug_drawcircfill_d voxie_debug_drawcircfill;
+		internal voxie_getversion_d voxie_getversion;
+		
+		#endregion
 
-        #endregion
-
-        #region runtime_dll
-        internal string dll = "";
+		#region runtime_dll
+		internal string dll = "";
         internal IntPtr Handle = IntPtr.Zero;
 		#endregion
 
@@ -429,7 +432,10 @@ namespace Voxon
 
             funcaddr = GetProcAddress(Handle, "voxie_debug_drawcircfill");
             voxie_debug_drawcircfill = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_debug_drawcircfill_d)) as voxie_debug_drawcircfill_d;
-        }
+
+			funcaddr = GetProcAddress(Handle, "voxie_getversion");
+			voxie_getversion = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_getversion_d)) as voxie_getversion_d;
+		}
         #endregion
 
         #region public_functions
@@ -902,6 +908,7 @@ namespace Voxon
         #region sound
         public float GetVolume()
         {
+			if (!isActive()) return 0f;
             return vw.sndfx_vol / 65535.0f;
         }
         #endregion
@@ -928,6 +935,12 @@ namespace Voxon
 
             voxie_debug_print6x8(x, y, 0xFFFFFF, 0x0, ts); // array);
         }
+
+		public Int64 GetDLLVersion()
+		{
+			if (!isLoaded()) return 0;
+			return voxie_getversion();
+		}
 
 		public HashSet<string> GetFeatures()
 		{
@@ -993,7 +1006,10 @@ namespace Voxon
 
                 // Logging
                 "LogToFile",
-				"LogToScreen"
+				"LogToScreen",
+
+				// Versioning
+				"GetDLLVersion"
 			};
 
 			return results;

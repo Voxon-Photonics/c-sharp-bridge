@@ -41,6 +41,14 @@ namespace Voxon
 		}
 
 		[TestMethod]
+		public void GetDLLVersion_Test()
+		{
+			runtime.Load();
+			Int64 version = runtime.GetDLLVersion();
+			Assert.IsTrue(version > 0);
+		}
+
+		[TestMethod]
 		public void DelegateInstancesBound_Test()
 		{
 			runtime.Load();
@@ -83,6 +91,7 @@ namespace Voxon
 			Assert.IsNotNull(runtime.voxie_debug_drawcirc, "voxie_debug_drawcirc");
 			Assert.IsNotNull(runtime.voxie_debug_drawrectfill, "voxie_debug_drawrectfill");
 			Assert.IsNotNull(runtime.voxie_debug_drawcircfill, "voxie_debug_drawcircfill");
+			Assert.IsNotNull(runtime.voxie_getversion, "voxie_getversion");
 		}
 
 		[TestCleanup]
