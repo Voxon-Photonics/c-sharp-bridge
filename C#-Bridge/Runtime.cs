@@ -110,7 +110,9 @@ namespace Voxon
 			public int goalrpm, cpmaxrpm, ianghak0, ianghak1, ianghak2;
 			public int upndow; //0=sawtooth, 1=triangle
 			public int nblades; //0=VX1 (not spinner), 1=/|, 2=/|/|, ..
-			public int reserved3_0, reserved3_1, reserved3_2, reserved3_3;
+			public int usejoy; //-1=none, 0=joyInfoEx, 1=XInput
+			public int reserved2_0, reserved2_1;
+			public float asprmin;
 			public float sync_usb_offset;
 			public int reserved4_0, reserved4_1, reserved4_2, reserved4_3, reserved4_4, reserved4_5;
 			public float aspr, sawtoothrat;
@@ -486,11 +488,21 @@ namespace Voxon
 			// Next check the registry
 			if (dll == "")
 			{
+				// Original Position
 				var _dll = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon");
 				if (_dll != null)
 				{
 					dll = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Path") + "voxiebox.dll";
 					sdk_version = (string)Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Version");
+				} else // Current Position
+				{
+					_dll = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Voxon\\Voxon");
+
+					if (_dll != null)
+					{
+						dll = (string)Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Path") + "voxiebox.dll";
+						sdk_version = (string)Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Voxon\\Voxon").GetValue("Version");
+					}
 				}
 			}
 
@@ -514,6 +526,9 @@ namespace Voxon
 		internal IntPtr LoadDLL(string path)
 		{
 			//Load DLL
+			path = path.Replace("\\", "/");
+			path = path.Replace("//", "/");
+			path = path.Replace("//", "/");
 			Handle = LoadLibrary(path);
 			if (Handle == IntPtr.Zero)
 			{
@@ -583,7 +598,7 @@ namespace Voxon
             return b_initialised;
         }
 
-        bool isActive()
+        protected bool isActive()
         {
             return (Handle != IntPtr.Zero) && b_initialised;
         }
@@ -642,22 +657,6 @@ namespace Voxon
         #endregion
 
         #region camera_controls
-        private void set_is_circular(bool is_circular)
-        {
-            if (!isActive()) return;
-
-            if(is_circular)
-            {
-                vw.clipshape = 1;
-                voxie_init(ref vw);
-            } else
-            {
-                vw.clipshape = 0;
-                voxie_init(ref vw);
-            }
-            
-        }
-
         public void SetAspectRatio(float aspx, float aspy, float aspz)
         {
             if (aspx <= 0 || aspy <= 0 || aspz <= 0)
@@ -1032,4 +1031,68 @@ namespace Voxon
         }
         #endregion
     }
+
+	public class HelixRuntime : Runtime, IHelixPromise
+	{
+		public bool GetHelixMode()
+		{
+			return vw.clipshape == 1;
+		}
+
+		public void SetHelixMode(bool _helixMode)
+		{
+			if (!isActive()) return;
+
+			if (_helixMode && vw.nblades > 0)
+			{
+				vw.clipshape = 1;
+				// Shouldn't need this due to loading from ini
+				// vw.aspr = 1.41f;
+				// vw.asprmin = 0.17f;
+				voxie_init(ref vw);
+			}
+			else
+			{
+				vw.clipshape = 0;
+				voxie_init(ref vw);
+			}
+		}
+
+		public float GetExternalRadius()
+		{
+			return vw.aspr;
+		}
+
+		public void SetExternalRadius(float radius)
+		{
+			vw.aspr = radius;
+			voxie_init(ref vw);
+		}
+
+		public float GetInternalRadius()
+		{
+			return vw.asprmin;
+		}
+
+		public void SetInternalRadius(float radius)
+		{
+			vw.asprmin = radius;
+			voxie_init(ref vw);
+		}
+
+		public new HashSet<string> GetFeatures()
+		{
+			HashSet<string> features = base.GetFeatures();
+
+			features.Add("GetHelixMode");
+			features.Add("SetHelixMode");
+			features.Add("GetExternalRadius");
+			features.Add("SetExternalRadius");
+			features.Add("GetInternalRadius");
+			features.Add("SetInternalRadius");
+
+			return features;
+		}
+
+	}
 }

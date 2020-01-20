@@ -56,9 +56,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="C#-bridge-interface, Version=1.0.0.1, Culture=neutral, processorArchitecture=AMD64">
+    <Reference Include="C#-bridge-interface, Version=1.0.0.1, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\interface-c-bridge\CSharp-bridge-interface\bin\x64\Release\C#-bridge-interface.dll</HintPath>
+      <HintPath>libs\C#-bridge-interface.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
