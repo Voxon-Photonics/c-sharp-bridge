@@ -246,6 +246,7 @@ namespace Voxon
 		internal delegate void voxie_debug_drawcirc_d     (int xc, int yc, int r, int col);
 		internal delegate void voxie_debug_drawrectfill_d (int x0, int y0, int x1, int y1, int col);
 		internal delegate void voxie_debug_drawcircfill_d (int x, int y, int r, int col);
+		internal delegate void voxie_free_d				  (char[] filename);
 		internal delegate long voxie_getversion_d		  ();
 
 
@@ -303,6 +304,7 @@ namespace Voxon
 		internal voxie_debug_drawcirc_d voxie_debug_drawcirc;
 		internal voxie_debug_drawrectfill_d voxie_debug_drawrectfill;
 		internal voxie_debug_drawcircfill_d voxie_debug_drawcircfill;
+		internal voxie_free_d voxie_free;
 		internal voxie_getversion_d voxie_getversion;
 		
 		#endregion
@@ -436,6 +438,9 @@ namespace Voxon
             funcaddr = GetProcAddress(Handle, "voxie_debug_drawcircfill");
             voxie_debug_drawcircfill = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_debug_drawcircfill_d)) as voxie_debug_drawcircfill_d;
 
+			funcaddr = GetProcAddress(Handle, "voxie_free");
+			voxie_free = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_free_d)) as voxie_free_d;
+
 			funcaddr = GetProcAddress(Handle, "voxie_getversion");
 			voxie_getversion = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_getversion_d)) as voxie_getversion_d;
 		}
@@ -551,6 +556,14 @@ namespace Voxon
                 // Initialise Box
                 voxie_loadini_int(ref vw);
 
+				if(vw.nblades >0)
+				{
+					vw.clipshape = 1;
+				}
+				else
+				{
+					vw.clipshape = 0;
+				}
 
                 voxie_init(ref vw);
 
@@ -654,6 +667,7 @@ namespace Voxon
 
             voxie_getvw(ref vw);
         }
+
         #endregion
 
         #region camera_controls
@@ -731,7 +745,16 @@ namespace Voxon
             voxie_drawvox(ref vf, position.x, position.y, position.z, col);
         }
 
-        public void DrawCube(ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, int flags, Int32 col)
+		public void DrawVoxels(ref point3d[] positions, ref int[] colours, int voxel_count)
+		{
+			if (!isActive()) return;
+			for(int i = voxel_count-1; i >= 0; --i)
+			{
+				voxie_drawvox(ref vf, positions[i].x, positions[i].y, positions[i].z, colours[i]);
+			}
+		}
+
+		public void DrawCube(ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, int flags, Int32 col)
         {
             if (!isActive()) return;
             voxie_drawcube(ref vf, ref pp, ref pr, ref pd, ref pf, flags, col);
@@ -979,6 +1002,7 @@ namespace Voxon
 				"DrawUntexturedMesh",
 				"DrawSphere",
 				"DrawVoxel",
+				"DrawVoxels",
 				"DrawCube",
 				"DrawLine",
 				"DrawPolygon",
@@ -1039,23 +1063,10 @@ namespace Voxon
 			return vw.clipshape == 1;
 		}
 
-		public void SetHelixMode(bool _helixMode)
+		public void SetSimulatorHelixMode(bool helix)
 		{
-			if (!isActive()) return;
-
-			if (_helixMode && vw.nblades > 0)
-			{
-				vw.clipshape = 1;
-				// Shouldn't need this due to loading from ini
-				// vw.aspr = 1.41f;
-				// vw.asprmin = 0.17f;
-				voxie_init(ref vw);
-			}
-			else
-			{
-				vw.clipshape = 0;
-				voxie_init(ref vw);
-			}
+			vw.clipshape = (helix ? 1 : 0);
+			voxie_init(ref vw);
 		}
 
 		public float GetExternalRadius()
@@ -1085,7 +1096,7 @@ namespace Voxon
 			HashSet<string> features = base.GetFeatures();
 
 			features.Add("GetHelixMode");
-			features.Add("SetHelixMode");
+			features.Add("SetSimulatorHelixMode");
 			features.Add("GetExternalRadius");
 			features.Add("SetExternalRadius");
 			features.Add("GetInternalRadius");
