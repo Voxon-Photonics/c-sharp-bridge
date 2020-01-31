@@ -114,7 +114,7 @@ namespace Voxon
 			public int reserved2_0, reserved2_1;
 			public float asprmin;
 			public float sync_usb_offset;
-			public int reserved4_0, reserved4_1, reserved4_2, reserved4_3, reserved4_4, reserved4_5;
+			public int sensemask0, sensemask1, sensemask2, outcol0, outcol1, outcol2;
 			public float aspr, sawtoothrat;
 		}
 
@@ -249,6 +249,12 @@ namespace Voxon
 		internal delegate void voxie_free_d				  (char[] filename);
 		internal delegate long voxie_getversion_d		  ();
 
+		internal delegate void voxie_menu_reset_d		  (MenuUpdateHandler menuUpdate, object userdata, char[] filename);
+		internal delegate void voxie_menu_addtab_d		  (char[] text, int x, int y, int xs, int ys);
+		internal delegate void voxie_menu_additem_d		  (char[] text, int x, int y, int xs, int ys, int id, int type, int down,
+														   int col, double v, double v0, double v1, double vstp0, double vstp1);
+		internal delegate void voxie_menu_updateitem_d	  (int id, char[] text, int down, double v);
+
 
 		#endregion
 
@@ -306,7 +312,13 @@ namespace Voxon
 		internal voxie_debug_drawcircfill_d voxie_debug_drawcircfill;
 		internal voxie_free_d voxie_free;
 		internal voxie_getversion_d voxie_getversion;
-		
+
+		// Menu Functions
+		internal voxie_menu_reset_d voxie_menu_reset;
+		internal voxie_menu_addtab_d voxie_menu_addtab;
+		internal voxie_menu_additem_d voxie_menu_additem;
+		internal voxie_menu_updateitem_d voxie_menu_updateitem;
+
 		#endregion
 
 		#region runtime_dll
@@ -443,6 +455,18 @@ namespace Voxon
 
 			funcaddr = GetProcAddress(Handle, "voxie_getversion");
 			voxie_getversion = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_getversion_d)) as voxie_getversion_d;
+
+			funcaddr = GetProcAddress(Handle, "voxie_menu_reset");
+			voxie_menu_reset = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_menu_reset_d)) as voxie_menu_reset_d;
+
+			funcaddr = GetProcAddress(Handle, "voxie_menu_addtab");
+			voxie_menu_addtab = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_menu_addtab_d)) as voxie_menu_addtab_d;
+
+			funcaddr = GetProcAddress(Handle, "voxie_menu_additem");
+			voxie_menu_additem = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_menu_additem_d)) as voxie_menu_additem_d;
+
+			funcaddr = GetProcAddress(Handle, "voxie_menu_updateitem");
+			voxie_menu_updateitem = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_menu_updateitem_d)) as voxie_menu_updateitem_d;
 		}
         #endregion
 
@@ -700,10 +724,66 @@ namespace Voxon
 
             return asp;
         }
-        #endregion
 
-        #region drawables
-        public void DrawGuidelines()
+		public void SetColorMode(int color)
+		{
+			//0=mono white, 1=full color time multiplexed,
+			//-1=red, -2=green, -3=yellow, -4=blue, -5=magenta, -6=cyan
+			//2 - Red/Blue, 3 - Red/Green, 4 - Blue / Green
+
+			if (!isActive() || color > 1 || color < -6) return;
+
+			
+			if(vw.usecol > 1) // Dual Color Mode 
+			{
+				switch (color)
+				{
+					case 2: // Red & Blue
+						vw.usecol = 1;
+						vw.ilacemode = 6;
+						vw.sensemask0 = 0xff0000;
+						vw.outcol0 = 0xff0000;
+						vw.sensemask1 = 0x0000ff;
+						vw.outcol1= 0x0000ff;
+						break;
+					case 3: // Red & Green
+						vw.usecol = 1;
+						vw.ilacemode = 6;
+						vw.sensemask0 = 0x00ff00;
+						vw.outcol0 = 0x00ff00;
+						vw.sensemask1 = 0xff0000;
+						vw.outcol1 = 0xff0000;
+						break;
+					case 4: // Blue & Green
+						vw.usecol = 1;
+						vw.ilacemode = 6;
+						vw.sensemask0 = 0x00ff00;
+						vw.outcol0 = 0x00ff00;
+						vw.sensemask1 = 0x0000ff;
+						vw.outcol1 = 0x0000ff;
+						break;
+					default:
+						break;
+				}
+			} else // Single Color Mode
+			{
+				vw.ilacemode = 0;
+				vw.usecol = color;
+			}
+			
+			voxie_init(ref vw);
+		}
+
+		public int GetColorMode()
+		{
+			if (!isActive()) return 0;
+
+			return vw.usecol;
+		}
+		#endregion
+
+		#region drawables
+		public void DrawGuidelines()
         {
             if (!isActive()) return;
             voxie_drawbox(ref vf, -vw.aspx + 1e-3f, -vw.aspy + 1e-3f, -vw.aspz, +vw.aspx - 1e-3f, +vw.aspy - 1e-3f, +vw.aspz, 1, 0xffffff);
@@ -745,13 +825,21 @@ namespace Voxon
             voxie_drawvox(ref vf, position.x, position.y, position.z, col);
         }
 
-		public void DrawVoxels(ref point3d[] positions, ref int[] colours, int voxel_count)
+		public void DrawVoxels(ref point3d[] positions, int voxel_count, ref int[] colours)
 		{
 			if (!isActive()) return;
 			for(int i = voxel_count-1; i >= 0; --i)
 			{
 				voxie_drawvox(ref vf, positions[i].x, positions[i].y, positions[i].z, colours[i]);
 			}
+		}
+
+		public void DrawVoxelBatch(ref poltex[] positions, int voxel_count, int colour)
+		{
+			if (!isActive()) return;
+
+			voxie_drawmeshtex_null(ref vf, 0, positions, voxel_count, null, 0, 0, colour);
+
 		}
 
 		public void DrawCube(ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, int flags, Int32 col)
@@ -993,6 +1081,8 @@ namespace Voxon
                 // Camera Control
                 "SetAspectRatio",
 				"GetAspectRatio",
+				"SetColorMode",
+				"GetColorMode",
 
                 // Draw Calls
                 "DrawGuidelines",
@@ -1002,6 +1092,7 @@ namespace Voxon
 				"DrawUntexturedMesh",
 				"DrawSphere",
 				"DrawVoxel",
+				"DrawVoxelBatch",
 				"DrawVoxels",
 				"DrawCube",
 				"DrawLine",
@@ -1040,24 +1131,33 @@ namespace Voxon
 
 				// Versioning
 				"GetDLLVersion",
-				"GetSDKVersion"
-			};
+				"GetSDKVersion",
+				
+				// Helix
+				"GetHelixMode",
+				"SetSimulatorHelixMode",
+				"GetExternalRadius",
+				"SetExternalRadius",
+				"GetInternalRadius",
+				"SetInternalRadius",
+
+				// Menu
+				"MenuReset",
+				"MenuAddTab",
+				"MenuAddText",
+				"MenuAddButton",
+				"MenuAddVerticleSlider",
+				"MenuAddHorizontalSlider",
+				"MenuAddEdit",
+				"MenuUpdateItem"
+		};
 
 			return results;
 		}
 		#endregion
 		#endregion
 
-		#region class_functions
-		~Runtime()
-        {
-            Shutdown();
-        }
-        #endregion
-    }
-
-	public class HelixRuntime : Runtime, IHelixPromise
-	{
+		#region Helix
 		public bool GetHelixMode()
 		{
 			return vw.clipshape == 1;
@@ -1090,20 +1190,67 @@ namespace Voxon
 			vw.asprmin = radius;
 			voxie_init(ref vw);
 		}
+		#endregion
 
-		public new HashSet<string> GetFeatures()
+		#region Menu Functions
+		public void MenuReset(MenuUpdateHandler menuUpdate, object userdata)
 		{
-			HashSet<string> features = base.GetFeatures();
-
-			features.Add("GetHelixMode");
-			features.Add("SetSimulatorHelixMode");
-			features.Add("GetExternalRadius");
-			features.Add("SetExternalRadius");
-			features.Add("GetInternalRadius");
-			features.Add("SetInternalRadius");
-
-			return features;
+			voxie_menu_reset(menuUpdate, userdata, null);
 		}
 
-	}
+		public void MenuAddTab(string text, int x, int y, int width, int height)
+		{
+			voxie_menu_addtab(text.ToCharArray(), x, y, width, height);
+		}
+
+		public void MenuAddText(int id, string text, int x, int y, int width, int height, int colour)
+		{
+			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_TEXT, 0, colour, 0, 0, 0, 0, 0);
+		}
+
+		public void MenuAddButton(int id, string text, int x, int y, int width, int height, int colour, int position)
+		{
+			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_BUTTON + position, 0, colour, 0, 0, 0, 0, 0);
+		}
+
+		public void MenuAddVerticleSlider(int id, string text, int x, int y, int width, int height, int colour,
+			int initial_value, double min, double max, double minor_step, double major_step)
+		{
+			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_VSLIDER,
+				initial_value, colour, initial_value, min, max, minor_step, major_step);
+		}
+
+		public void MenuAddHorizontalSlider(int id, string text, int x, int y, int width, int height, int colour,
+			int initial_value, double min, double max, double minor_step, double major_step)
+		{
+			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_HSLIDER,
+				initial_value, colour, initial_value, min, max, minor_step, major_step);
+		}
+
+		public void MenuAddEdit(int id, string text, int x, int y, int width, int height, int colour, bool hasFollowupButton = false)
+		{
+			if (hasFollowupButton)
+			{
+				voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_EDIT_DO, 0, colour, 0, 0, 0, 0, 0);
+			}
+			else
+			{
+				voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_EDIT, 0, colour, 0, 0, 0, 0, 0);
+			}
+
+		}
+
+		public void MenuUpdateItem(int id, string text, int button_state, double slider_value)
+		{
+			voxie_menu_updateitem(id, text.ToCharArray(), button_state, slider_value);
+		}
+		#endregion
+
+		#region class_functions
+		~Runtime()
+        {
+            Shutdown();
+        }
+        #endregion
+    }
 }
