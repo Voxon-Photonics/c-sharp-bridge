@@ -731,10 +731,10 @@ namespace Voxon
 			//-1=red, -2=green, -3=yellow, -4=blue, -5=magenta, -6=cyan
 			//2 - Red/Blue, 3 - Red/Green, 4 - Blue / Green
 
-			if (!isActive() || color > 1 || color < -6) return;
+			if (!isActive() || color > 4 || color < -6) return;
 
 			
-			if(vw.usecol > 1) // Dual Color Mode 
+			if(color > 1) // Dual Color Mode 
 			{
 				switch (color)
 				{
@@ -743,16 +743,16 @@ namespace Voxon
 						vw.ilacemode = 6;
 						vw.sensemask0 = 0xff0000;
 						vw.outcol0 = 0xff0000;
-						vw.sensemask1 = 0x0000ff;
-						vw.outcol1= 0x0000ff;
+						vw.sensemask1 = 0x00ff00;
+						vw.outcol1 = 0x00ff00;
 						break;
 					case 3: // Red & Green
 						vw.usecol = 1;
 						vw.ilacemode = 6;
-						vw.sensemask0 = 0x00ff00;
-						vw.outcol0 = 0x00ff00;
-						vw.sensemask1 = 0xff0000;
-						vw.outcol1 = 0xff0000;
+						vw.sensemask0 = 0xff0000;
+						vw.outcol0 = 0xff0000;
+						vw.sensemask1 = 0x0000ff;
+						vw.outcol1 = 0x0000ff;
 						break;
 					case 4: // Blue & Green
 						vw.usecol = 1;
