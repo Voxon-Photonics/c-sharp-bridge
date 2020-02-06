@@ -256,11 +256,11 @@ namespace Voxon
 		internal delegate void voxie_free_d				  (char[] filename);
 		internal delegate long voxie_getversion_d		  ();
 
-		internal delegate void voxie_menu_reset_d		  (MenuUpdateHandler menuUpdate, object userdata, char[] filename);
-		internal delegate void voxie_menu_addtab_d		  (char[] text, int x, int y, int xs, int ys);
-		internal delegate void voxie_menu_additem_d		  (char[] text, int x, int y, int xs, int ys, int id, int type, int down,
+		internal delegate void voxie_menu_reset_d		  (MenuUpdateHandler menuUpdate, IntPtr userdata, char[] filename);
+		internal delegate void voxie_menu_addtab_d		  ([MarshalAs(UnmanagedType.LPStr)]string text, int x, int y, int xs, int ys);
+		internal delegate void voxie_menu_additem_d		  ([MarshalAs(UnmanagedType.LPStr)]string text, int x, int y, int xs, int ys, int id, int type, int down,
 														   int col, double v, double v0, double v1, double vstp0, double vstp1);
-		internal delegate void voxie_menu_updateitem_d	  (int id, char[] text, int down, double v);
+		internal delegate void voxie_menu_updateitem_d	  (int id, [MarshalAs(UnmanagedType.LPStr)]string text, int down, double v);
 
 
 		#endregion
@@ -1220,7 +1220,7 @@ namespace Voxon
 		#endregion
 
 		#region Menu Functions
-		public void MenuReset(MenuUpdateHandler menuUpdate, object userdata)
+		public void MenuReset(MenuUpdateHandler menuUpdate, IntPtr userdata)
 		{
 			if (!isActive()) return;
 			voxie_menu_reset(menuUpdate, userdata, null);
@@ -1229,35 +1229,36 @@ namespace Voxon
 		public void MenuAddTab(string text, int x, int y, int width, int height)
 		{
 			if (!isActive()) return;
-			voxie_menu_addtab(text.ToCharArray(), x, y, width, height);
+
+			voxie_menu_addtab(text, x, y, width, height);
 		}
 
 		public void MenuAddText(int id, string text, int x, int y, int width, int height, int colour)
 		{
 			if (!isActive()) return;
-			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_TEXT, 0, colour, 0, 0, 0, 0, 0);
+			voxie_menu_additem(text, x, y, width, height, id, (int)MENU_TYPE.MENU_TEXT, 0, colour, 0, 0, 0, 0, 0);
 		}
 
 		public void MenuAddButton(int id, string text, int x, int y, int width, int height, int colour, int position)
 		{
 			if (!isActive()) return;
-			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_BUTTON + position, 0, colour, 0, 0, 0, 0, 0);
+			voxie_menu_additem(text, x, y, width, height, id, (int)MENU_TYPE.MENU_BUTTON + position, 0, colour, 0, 0, 0, 0, 0);
 		}
 
 		public void MenuAddVerticleSlider(int id, string text, int x, int y, int width, int height, int colour,
-			int initial_value, double min, double max, double minor_step, double major_step)
+			double initial_value, double min, double max, double minor_step, double major_step)
 		{
 			if (!isActive()) return;
-			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_VSLIDER,
-				initial_value, colour, initial_value, min, max, minor_step, major_step);
+			voxie_menu_additem(text, x, y, width, height, id, (int)MENU_TYPE.MENU_VSLIDER, 0,
+				colour, initial_value, min, max, minor_step, major_step);
 		}
 
 		public void MenuAddHorizontalSlider(int id, string text, int x, int y, int width, int height, int colour,
-			int initial_value, double min, double max, double minor_step, double major_step)
+			double initial_value, double min, double max, double minor_step, double major_step)
 		{
 			if (!isActive()) return;
-			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_HSLIDER,
-				initial_value, colour, initial_value, min, max, minor_step, major_step);
+			voxie_menu_additem(text, x, y, width, height, id, (int)MENU_TYPE.MENU_HSLIDER, 0,
+				colour, initial_value, min, max, minor_step, major_step);
 		}
 
 		public void MenuAddEdit(int id, string text, int x, int y, int width, int height, int colour, bool hasFollowupButton = false)
@@ -1265,11 +1266,11 @@ namespace Voxon
 			if (!isActive()) return;
 			if (hasFollowupButton)
 			{
-				voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_EDIT_DO, 0, colour, 0, 0, 0, 0, 0);
+				voxie_menu_additem(text, x, y, width, height, id, (int)MENU_TYPE.MENU_EDIT_DO, 0, colour, 0, 0, 0, 0, 0);
 			}
 			else
 			{
-				voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_EDIT, 0, colour, 0, 0, 0, 0, 0);
+				voxie_menu_additem(text, x, y, width, height, id, (int)MENU_TYPE.MENU_EDIT, 0, colour, 0, 0, 0, 0, 0);
 			}
 
 		}
@@ -1277,7 +1278,7 @@ namespace Voxon
 		public void MenuUpdateItem(int id, string text, int button_state, double slider_value)
 		{
 			if (!isActive()) return;
-			voxie_menu_updateitem(id, text.ToCharArray(), button_state, slider_value);
+			voxie_menu_updateitem(id, text, button_state, slider_value);
 		}
 		#endregion
 
