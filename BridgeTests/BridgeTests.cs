@@ -102,6 +102,78 @@ namespace Voxon
 			Assert.IsNotNull(runtime.voxie_getversion, "voxie_getversion");
 		}
 
+		[TestMethod]
+		public void SetEmulatorVAng_Test()
+		{
+			// Start Up Simulator
+			runtime.Load();
+			runtime.Initialise();
+			while (!runtime.isInitialised()) ;
+
+			float expected, result, input;
+
+			// Normal Usage
+			input = -1; expected = -1;
+			result = runtime.SetEmulatorVerticalAngle(input);
+			Assert.AreEqual(expected, result, "BASECASE: Normal Usage");
+
+			// Edge Case Negative Valid
+			input = Runtime.MIN_EMU_VANG; expected = Runtime.MIN_EMU_VANG;
+			result = runtime.SetEmulatorVerticalAngle(input);
+			Assert.AreEqual(expected, result, "EDGECASE: Negative Valid");
+
+			// Edge Case Negative Invalid
+			input = Runtime.MIN_EMU_VANG - 1; expected = Runtime.MIN_EMU_VANG;
+			result = runtime.SetEmulatorVerticalAngle(input);
+			Assert.AreEqual(expected, result, "EDGECASE: Negative Invalid");
+
+			// Edge Case Positive Valid
+			input = Runtime.MAX_EMU_VANG; expected = Runtime.MAX_EMU_VANG;
+			result = runtime.SetEmulatorVerticalAngle(input);
+			Assert.AreEqual(expected, result, "EDGECASE: Positive Valid");
+
+			// Edge Case Positive Invalid
+			input = Runtime.MAX_EMU_VANG + 1; expected = Runtime.MAX_EMU_VANG;
+			result = runtime.SetEmulatorVerticalAngle(input);
+			Assert.AreEqual(expected, result, "EDGECASE: Positive Invalid");
+		}
+
+		[TestMethod]
+		public void SetEmulatorHAng_Test()
+		{
+			// Start Up Simulator
+			runtime.Load();
+			runtime.Initialise();
+			while (!runtime.isInitialised()) ;
+
+			float expected, result, input;
+
+			// Normal Usage
+			input = 1; expected = 1;
+			result = runtime.SetEmulatorHorizontalAngle(input);
+			Assert.AreEqual(expected, result,"BASECASE: Normal Usage");
+
+			// Edge Case Negative Valid
+			input = Runtime.MIN_EMU_HANG; expected = Runtime.MIN_EMU_HANG;
+			result = runtime.SetEmulatorHorizontalAngle(input);
+			Assert.AreEqual(expected, result, "EDGECASE: Negative Valid");
+
+			// Edge Case Negative Invalid
+			input = Runtime.MIN_EMU_HANG - 1; expected = Runtime.MIN_EMU_HANG;
+			result = runtime.SetEmulatorHorizontalAngle(input);
+			Assert.AreEqual(expected, result, "EDGECASE: Negative Invalid");
+
+			// Edge Case Positive Valid
+			input = Runtime.MAX_EMU_HANG; expected = Runtime.MAX_EMU_HANG;
+			result = runtime.SetEmulatorHorizontalAngle(input);
+			Assert.AreEqual(expected, result, "EDGECASE: Positive Valid");
+
+			// Edge Case Positive Invalid
+			input = Runtime.MAX_EMU_HANG + 1; expected = Runtime.MAX_EMU_HANG;
+			result = runtime.SetEmulatorHorizontalAngle(input);
+			Assert.AreEqual(expected, result, "EDGECASE: Positive Invalid");
+		}
+
 		[TestCleanup]
 		public void Cleanup()
 		{

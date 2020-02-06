@@ -11,10 +11,17 @@ namespace Voxon
         const int MAXCONTROLLERS = 4;
         const int TEXTURE_BACK_COLOUR = 0x3F3F3F;
         private System.Text.Encoding enc = System.Text.Encoding.ASCII;
-        #endregion
 
-        #region private_structures
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+		public const float MAX_EMU_VANG = 0f;
+		public const float MIN_EMU_VANG = -1.571f;
+		public const float MAX_EMU_HANG = 3.142f;
+		public const float MIN_EMU_HANG = -3.142f;
+		public const int MAX_EMU_DIST = 4000;
+		public const int MIN_EMU_DIST = 400;
+		#endregion
+
+		#region private_structures
+		[StructLayout(LayoutKind.Sequential, Pack = 1)]
 		internal struct voxie_xbox_t
         {
             public short but;       //XBox controller buttons (same layout as XInput)
@@ -834,12 +841,14 @@ namespace Voxon
 			}
 		}
 
-		public void DrawVoxelBatch(ref poltex[] positions, int voxel_count, int colour)
+		public void DrawVoxelBatch(ref point3d[] positions, int voxel_count, int colour)
 		{
 			if (!isActive()) return;
 
-			voxie_drawmeshtex_null(ref vf, 0, positions, voxel_count, null, 0, 0, colour);
-
+			for (int i = voxel_count - 1; i >= 0; --i)
+			{
+				voxie_drawvox(ref vf, positions[i].x, positions[i].y, positions[i].z, colour);
+			}
 		}
 
 		public void DrawCube(ref point3d pp, ref point3d pr, ref point3d pd, ref point3d pf, int flags, Int32 col)
@@ -1048,6 +1057,10 @@ namespace Voxon
             voxie_debug_print6x8(x, y, 0xFFFFFF, 0x0, ts); // array);
         }
 
+		#endregion
+
+		#region DLL_Details
+
 		public long GetDLLVersion()
 		{
 			if (!isLoaded()) return 0;
@@ -1149,7 +1162,15 @@ namespace Voxon
 				"MenuAddVerticleSlider",
 				"MenuAddHorizontalSlider",
 				"MenuAddEdit",
-				"MenuUpdateItem"
+				"MenuUpdateItem",
+
+				// Emulator
+				"SetEmulatorHorizontalAngle",
+				"SetEmulatorVerticalAngle",
+				"SetEmulatorDistance",
+				"GetEmulatorHorizontalAngle",
+				"GetEmulatorVerticalAngle",
+				"GetEmulatorDistance"
 		};
 
 			return results;
@@ -1160,33 +1181,39 @@ namespace Voxon
 		#region Helix
 		public bool GetHelixMode()
 		{
+			if (!isActive()) return false;
 			return vw.clipshape == 1;
 		}
 
 		public void SetSimulatorHelixMode(bool helix)
 		{
+			if (!isActive()) return;
 			vw.clipshape = (helix ? 1 : 0);
 			voxie_init(ref vw);
 		}
 
 		public float GetExternalRadius()
 		{
+			if (!isActive()) return 0.0f;
 			return vw.aspr;
 		}
 
 		public void SetExternalRadius(float radius)
 		{
+			if (!isActive()) return;
 			vw.aspr = radius;
 			voxie_init(ref vw);
 		}
 
 		public float GetInternalRadius()
 		{
+			if (!isActive()) return 0.0f;
 			return vw.asprmin;
 		}
 
 		public void SetInternalRadius(float radius)
 		{
+			if (!isActive()) return;
 			vw.asprmin = radius;
 			voxie_init(ref vw);
 		}
@@ -1195,27 +1222,32 @@ namespace Voxon
 		#region Menu Functions
 		public void MenuReset(MenuUpdateHandler menuUpdate, object userdata)
 		{
+			if (!isActive()) return;
 			voxie_menu_reset(menuUpdate, userdata, null);
 		}
 
 		public void MenuAddTab(string text, int x, int y, int width, int height)
 		{
+			if (!isActive()) return;
 			voxie_menu_addtab(text.ToCharArray(), x, y, width, height);
 		}
 
 		public void MenuAddText(int id, string text, int x, int y, int width, int height, int colour)
 		{
+			if (!isActive()) return;
 			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_TEXT, 0, colour, 0, 0, 0, 0, 0);
 		}
 
 		public void MenuAddButton(int id, string text, int x, int y, int width, int height, int colour, int position)
 		{
+			if (!isActive()) return;
 			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_BUTTON + position, 0, colour, 0, 0, 0, 0, 0);
 		}
 
 		public void MenuAddVerticleSlider(int id, string text, int x, int y, int width, int height, int colour,
 			int initial_value, double min, double max, double minor_step, double major_step)
 		{
+			if (!isActive()) return;
 			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_VSLIDER,
 				initial_value, colour, initial_value, min, max, minor_step, major_step);
 		}
@@ -1223,12 +1255,14 @@ namespace Voxon
 		public void MenuAddHorizontalSlider(int id, string text, int x, int y, int width, int height, int colour,
 			int initial_value, double min, double max, double minor_step, double major_step)
 		{
+			if (!isActive()) return;
 			voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_HSLIDER,
 				initial_value, colour, initial_value, min, max, minor_step, major_step);
 		}
 
 		public void MenuAddEdit(int id, string text, int x, int y, int width, int height, int colour, bool hasFollowupButton = false)
 		{
+			if (!isActive()) return;
 			if (hasFollowupButton)
 			{
 				voxie_menu_additem(text.ToCharArray(), x, y, width, height, id, (int)MENU_TYPE.MENU_EDIT_DO, 0, colour, 0, 0, 0, 0, 0);
@@ -1242,8 +1276,63 @@ namespace Voxon
 
 		public void MenuUpdateItem(int id, string text, int button_state, double slider_value)
 		{
+			if (!isActive()) return;
 			voxie_menu_updateitem(id, text.ToCharArray(), button_state, slider_value);
 		}
+		#endregion
+
+		#region Emulator_Functions
+		public float SetEmulatorHorizontalAngle(float rads)
+		{
+			if (!isActive()) return 0f;
+			rads = Math.Max(MIN_EMU_HANG,rads);
+			rads = Math.Min(MAX_EMU_HANG, rads);
+
+			vw.emuhang = rads;
+			voxie_init(ref vw);
+			return vw.emuhang;
+		}
+
+		// VANG WORKS BACKWARDS (-1.412 -> 0)
+		public float SetEmulatorVerticalAngle(float rads)
+		{
+			if (!isActive()) return 0f;
+			rads = Math.Max(MIN_EMU_VANG, rads);
+			rads = Math.Min(MAX_EMU_VANG, rads);
+
+			vw.emuvang = rads;
+			voxie_init(ref vw);
+			return vw.emuvang;
+		}
+
+		public float SetEmulatorDistance(float distance)
+		{
+			if (!isActive()) return 0f;
+			distance = Math.Max(MIN_EMU_DIST, distance);
+			distance = Math.Min(MAX_EMU_DIST, distance);
+			vw.emudist = distance;
+			voxie_init(ref vw);
+			return vw.emudist;
+		}
+
+		public float GetEmulatorHorizontalAngle()
+		{
+			if (!isActive()) return 0f;
+			return vw.emuhang;
+		}
+
+		public float GetEmulatorVerticalAngle()
+		{
+			if (!isActive()) return 0f;
+			return vw.emuvang;
+		}
+
+		public float GetEmulatorDistance()
+		{
+			if (!isActive()) return 0f;
+			return vw.emudist;
+		}
+
 		#endregion
 
 		#region class_functions
