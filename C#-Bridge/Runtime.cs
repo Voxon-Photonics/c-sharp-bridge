@@ -569,6 +569,7 @@ namespace Voxon
 			if (Handle == IntPtr.Zero)
 			{
 				int errorCode = Marshal.GetLastWin32Error();
+				Alert.Show(string.Format("Failed to load library (ErrorCode: {0}).\nPath = {1}", errorCode, dll));
 				throw new Exception(string.Format("Failed to load library (ErrorCode: {0}). Path = {1}", errorCode, dll));
 			}
 
