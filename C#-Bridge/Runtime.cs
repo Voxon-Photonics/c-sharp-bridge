@@ -14,8 +14,8 @@ namespace Voxon
 
 		public const float MAX_EMU_VANG = 0f;
 		public const float MIN_EMU_VANG = -1.571f;
-		public const float MAX_EMU_HANG = 3.142f;
-		public const float MIN_EMU_HANG = -3.142f;
+		public const float MAX_EMU_HANG = 3.14f;
+		public const float MIN_EMU_HANG = -3.14f;
 		public const int MAX_EMU_DIST = 4000;
 		public const int MIN_EMU_DIST = 400;
 		#endregion
@@ -118,7 +118,8 @@ namespace Voxon
 			public int upndow; //0=sawtooth, 1=triangle
 			public int nblades; //0=VX1 (not spinner), 1=/|, 2=/|/|, ..
 			public int usejoy; //-1=none, 0=joyInfoEx, 1=XInput
-			public int reserved2_0, reserved2_1;
+			public int dimcaps;
+			public float emugam;
 			public float asprmin;
 			public float sync_usb_offset;
 			public int sensemask0, sensemask1, sensemask2, outcol0, outcol1, outcol2;
