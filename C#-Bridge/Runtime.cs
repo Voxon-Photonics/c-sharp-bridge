@@ -9,8 +9,8 @@ namespace Voxon
     {
         #region magic_numbers
         const int MAXCONTROLLERS = 4;
-        const int TEXTURE_BACK_COLOUR = 0x3F3F3F;
-        private System.Text.Encoding enc = System.Text.Encoding.ASCII;
+        const int TEXTURE_BACK_COLOUR = 0x404040;
+		private System.Text.Encoding enc = System.Text.Encoding.ASCII;
 
 		public const float MAX_EMU_VANG = 0f;
 		public const float MIN_EMU_VANG = -1.571f;
@@ -114,7 +114,7 @@ namespace Voxon
 			int thread_override_hack; //0:default thread behavior, 1..n:force n threads for voxie_drawspr()/voxie_drawheimap(); bound to: {1 .. #CPU cores (1 less on hw)}
 			public int motortyp; //0=Old DC brush motor, 1=ClearPath using Frequency Input, 2=AU brushless airplane motor
 			public int clipshape; //0=rectangle (vw.aspx,vw.aspy), 1=circle (vw.aspr)
-			public int goalrpm, cpmaxrpm, ianghak0, ianghak1, ianghak2;
+			public int goalrpm, cpmaxrpm, ianghak, ldotnum, normhax;
 			public int upndow; //0=sawtooth, 1=triangle
 			public int nblades; //0=VX1 (not spinner), 1=/|, 2=/|/|, ..
 			public int usejoy; //-1=none, 0=joyInfoEx, 1=XInput
@@ -133,7 +133,7 @@ namespace Voxon
             public IntPtr p;              //Number of bytes per horizontal line (x)
             public IntPtr fp;             //Number of bytes per 24-plane frame (1/3 of screen)
             public int x, y;               //Width and height of viewport
-            public int usecol;             //Tells whether color mode is selected
+            public int flags;             //Tells whether color mode is selected
             public int drawplanes;         //Tells how many planes to draw
             public int x0, y0, x1, y1;     //Viewport extents
             public float xmul, ymul, zmul; //Transform for medium and high level graphics functions..
@@ -194,8 +194,6 @@ namespace Voxon
 		internal delegate int voxie_keystat_d(int i);
 
 		internal delegate int voxie_keyread_d();
-
-		internal delegate void voxie_doscreencap_d();
 
 		internal delegate void voxie_setview_d(ref voxie_frame_t vf, float x0, float y0, float z0, float x1, float y1, float z1);
 
@@ -263,6 +261,7 @@ namespace Voxon
 														   int col, double v, double v0, double v1, double vstp0, double vstp1);
 		internal delegate void voxie_menu_updateitem_d	  (int id, [MarshalAs(UnmanagedType.LPStr)]string text, int down, double v);
 
+		internal delegate void voxie_volcap_d([MarshalAs(UnmanagedType.LPStr)]string filname, int volcap_mode, int fps);
 
 		#endregion
 
@@ -288,7 +287,7 @@ namespace Voxon
 		internal voxie_klock_d voxie_klock;
 		internal voxie_keystat_d voxie_keystat;
 		internal voxie_keyread_d voxie_keyread;
-		internal voxie_doscreencap_d voxie_doscreencap;
+		internal voxie_volcap_d voxie_volcap;
 		internal voxie_setview_d voxie_setview;
 		internal voxie_frame_start_d voxie_frame_start;
 		internal voxie_frame_end_d voxie_frame_end;
@@ -376,10 +375,10 @@ namespace Voxon
             funcaddr = GetProcAddress(Handle, "voxie_keyread");
             voxie_keyread = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_keyread_d)) as voxie_keyread_d;
 
-            funcaddr = GetProcAddress(Handle, "voxie_doscreencap");
-            voxie_doscreencap = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_doscreencap_d)) as voxie_doscreencap_d;
+			funcaddr = GetProcAddress(Handle, "voxie_volcap");
+			voxie_volcap = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_volcap_d)) as voxie_volcap_d;
 
-            funcaddr = GetProcAddress(Handle, "voxie_setview");
+			funcaddr = GetProcAddress(Handle, "voxie_setview");
             voxie_setview = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_setview_d)) as voxie_setview_d;
 
             funcaddr = GetProcAddress(Handle, "voxie_frame_start");
@@ -476,12 +475,12 @@ namespace Voxon
 			funcaddr = GetProcAddress(Handle, "voxie_menu_updateitem");
 			voxie_menu_updateitem = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_menu_updateitem_d)) as voxie_menu_updateitem_d;
 		}
-        #endregion
+		#endregion
 
-        #region public_functions
-        #region dll_control
+		#region public_functions
+		#region dll_control
 
-        public void Load()
+		public void Load()
         {
             try
             {
@@ -816,13 +815,19 @@ namespace Voxon
             voxie_drawmeshtex(ref vf, ref texture, vertices, vertice_count, indices, indice_count, flags, TEXTURE_BACK_COLOUR);
         }
 
-        public void DrawUntexturedMesh(poltex[] vertices, int vertice_count, int[] indices, int indice_count, int flags, int colour)
+		public void DrawLitTexturedMesh(ref tiletype texture, poltex[] vertices, int vertice_count, int[] indices, int indice_count, int flags, int ambient_col)
+		{
+			if (!isActive()) return;
+			voxie_drawmeshtex(ref vf, ref texture, vertices, vertice_count, indices, indice_count, flags, ambient_col);
+		}
+
+		public void DrawUntexturedMesh(poltex[] vertices, int vertice_count, int[] indices, int indice_count, int flags, int colour)
         {
             if (!isActive()) return;
             voxie_drawmeshtex_null(ref vf, 0, vertices, vertice_count, indices, indice_count, flags, colour);
         }
 
-        public void DrawSphere(ref point3d position, float radius, int issol, int colour)
+		public void DrawSphere(ref point3d position, float radius, int issol, int colour)
         {
             if (!isActive()) return;
             voxie_drawsph(ref vf, position.x, position.y, position.z, radius, issol, colour);
@@ -1057,8 +1062,37 @@ namespace Voxon
             ts[tmp.Length] = 0;
 
             voxie_debug_print6x8(x, y, 0xFFFFFF, 0x0, ts); // array);
-        }
+		}
 
+		#endregion
+
+		#region recording
+		enum RECORDING_TYPE { VOLCAP_OFF = 0, VOLCAP_FRAME_PLY, VOLCAP_FRAME_PNG, VOLCAP_FRAME_REC, VOLCAP_VIDEO_REC, VOLCAP_FRAME_VCB, VOLCAP_VIDEO_VCBZIP };
+
+		public void StartRecording(string filename, int targetVPS)
+		{
+			if (!isActive()) return;
+			// Filename is valid here
+			// Set Up Keystone
+			vw.usekeystone = 1;
+			voxie_init(ref vw);
+
+			voxie_volcap(filename, (int)RECORDING_TYPE.VOLCAP_VIDEO_VCBZIP, targetVPS);
+		}
+
+		public void EndRecording()
+		{
+			if (!isActive()) return;
+			voxie_volcap(null, (int)RECORDING_TYPE.VOLCAP_OFF, 0); // Probably gonna crash
+			vw.usekeystone = 0;
+			voxie_init(ref vw);
+		}
+
+		public void GetVCB(string filename, int targetVPS)
+		{
+			if (!isActive()) return;
+			voxie_volcap(filename, (int)RECORDING_TYPE.VOLCAP_FRAME_VCB, targetVPS);
+		}
 		#endregion
 
 		#region DLL_Details
@@ -1172,7 +1206,15 @@ namespace Voxon
 				"SetEmulatorDistance",
 				"GetEmulatorHorizontalAngle",
 				"GetEmulatorVerticalAngle",
-				"GetEmulatorDistance"
+				"GetEmulatorDistance",
+
+				// Lighting
+				"DrawLitTexturedMesh",
+
+				// Recording
+				"StartRecording",
+				"EndRecording",
+				"GetVCB"
 		};
 
 			return results;

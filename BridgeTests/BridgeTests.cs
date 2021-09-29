@@ -70,7 +70,7 @@ namespace Voxon
 			Assert.IsNotNull(runtime.voxie_klock, "voxie_klock");
 			Assert.IsNotNull(runtime.voxie_keystat, "voxie_keystat");
 			Assert.IsNotNull(runtime.voxie_keyread, "voxie_keyread");
-			Assert.IsNotNull(runtime.voxie_doscreencap, "voxie_doscreencap");
+			Assert.IsNotNull(runtime.voxie_volcap, "voxie_volcap");
 			Assert.IsNotNull(runtime.voxie_setview, "voxie_setview");
 			Assert.IsNotNull(runtime.voxie_frame_start, "voxie_frame_start");
 			Assert.IsNotNull(runtime.voxie_frame_end, "voxie_frame_end");
