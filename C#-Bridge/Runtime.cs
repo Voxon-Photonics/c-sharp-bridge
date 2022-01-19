@@ -510,6 +510,12 @@ namespace Voxon
             }
 
             // Set up function delegates
+			if(Handle == null)
+			{
+				LogToFile("Handle failed to be created");
+				return;
+
+			}
             setup_delegates(Handle);
         }
 
