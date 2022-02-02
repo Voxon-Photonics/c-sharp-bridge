@@ -1,2 +1,2 @@
 echo %1
-"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\signtool.exe" sign %1
+"C:\Program Files (x86)\Windows Kits\10\App Certification Kit\signtool.exe" sign /a %1

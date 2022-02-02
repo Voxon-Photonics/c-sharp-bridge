@@ -12,6 +12,8 @@ namespace Voxon
         const int TEXTURE_BACK_COLOUR = 0x404040;
 		private System.Text.Encoding enc = System.Text.Encoding.ASCII;
 
+		public const int MIN_DOT_SIZE = 0;
+		public const int MAX_DOT_SIZE = 4;
 		public const float MAX_EMU_VANG = 0f;
 		public const float MIN_EMU_VANG = -1.571f;
 		public const float MAX_EMU_HANG = 3.14f;
@@ -105,10 +107,12 @@ namespace Voxon
             public int isrecording;        //0=normally, 1 when .REC file recorder is in progress (written by DLL)
             public int hacks;         //1=exclusive mouse, 0=not
             public int dispcur;            //current display selected in menus {0..dispnum-1}
+			public int sndfx_nspk;
+			public int reserved;
 
-            //Obsolete
-            public double freq;            //starting value in Hz (must be set before first call to voxie_init()); obsolete - not used by current hardware
-            public double phase;           //phase lock {0.0..1.0} (can be updated on later calls to voxie_init()); obsolete - not used by current hardware
+			//Obsolete
+			public float freq;            //starting value in Hz (must be set before first call to voxie_init()); obsolete - not used by current hardware
+            public float phase;           //phase lock {0.0..1.0} (can be updated on later calls to voxie_init()); obsolete - not used by current hardware
 
 			//Helix
 			int thread_override_hack; //0:default thread behavior, 1..n:force n threads for voxie_drawspr()/voxie_drawheimap(); bound to: {1 .. #CPU cores (1 less on hw)}
@@ -263,6 +267,7 @@ namespace Voxon
 
 		internal delegate void voxie_volcap_d([MarshalAs(UnmanagedType.LPStr)]string filname, int volcap_mode, int fps);
 
+		internal delegate void voxie_setnorm_d (float nx, float ny, float nz);
 		#endregion
 
 		#region DLL_imports
@@ -308,6 +313,7 @@ namespace Voxon
 		internal voxie_xbox_read_d voxie_xbox_read;
 		internal voxie_xbox_write_d voxie_xbox_write;
 		internal voxie_nav_read_d voxie_nav_read;
+		internal voxie_setnorm_d voxie_setnorm;
 
 		// Debug Functions
 		internal voxie_debug_print6x8_d voxie_debug_print6x8;
@@ -436,7 +442,10 @@ namespace Voxon
             funcaddr = GetProcAddress(Handle, "voxie_playsound");
             voxie_playsound = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_playsound_d)) as voxie_playsound_d;
 
-            funcaddr = GetProcAddress(Handle, "voxie_debug_print6x8");
+			funcaddr = GetProcAddress(Handle, "voxie_setnorm");
+			voxie_setnorm = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_setnorm_d)) as voxie_setnorm_d;
+
+			funcaddr = GetProcAddress(Handle, "voxie_debug_print6x8");
             voxie_debug_print6x8 = Marshal.GetDelegateForFunctionPointer(funcaddr, typeof(voxie_debug_print6x8_d)) as voxie_debug_print6x8_d;
 
             funcaddr = GetProcAddress(Handle, "voxie_debug_drawpix");
@@ -1220,7 +1229,17 @@ namespace Voxon
 				// Recording
 				"StartRecording",
 				"EndRecording",
-				"GetVCB"
+				"GetVCB",
+
+				// Harvard
+				"SetDotSize",
+				"GetDotSize",
+				"SetGamma",
+				"GetGamma",
+				"SetDensity",
+				"GetDensity",
+				"DisableNormalLighting",
+				"SetNormalLighting"
 		};
 
 			return results;
@@ -1382,6 +1401,59 @@ namespace Voxon
 		{
 			if (!isActive()) return 0f;
 			return vw.emudist;
+		}
+
+		public void SetDotSize(int dotSize)
+		{
+			if (!isActive()) return;
+			dotSize = Math.Max(MIN_DOT_SIZE, dotSize);
+			dotSize = Math.Min(MAX_DOT_SIZE, dotSize);
+			vw.ldotnum = dotSize;
+			voxie_init(ref vw);
+		}
+
+		public int GetDotSize()
+		{
+			if (!isActive()) return 0;
+			return vw.ldotnum;
+		}
+
+		public void SetGamma(float gamma)
+		{
+			if (!isActive()) return;
+			// TODO Establish Gamma parameter limits
+			vw.gamma = gamma;
+			voxie_init(ref vw);
+		}
+
+		public float GetGamma()
+		{
+			if (!isActive()) return 0f;
+			return vw.gamma;
+		}
+
+		public void SetDensity(float density)
+		{
+			if (!isActive()) return;
+			// TODO Establish Gamma parameter limits
+			vw.density = density;
+			voxie_init(ref vw);
+		}
+
+		public float GetDensity()
+		{
+			if (!isActive()) return 0f;
+			return vw.density;
+		}
+
+		public void DisableNormalLighting()
+		{
+			voxie_setnorm(0, 0, 0);
+		}
+
+		public void SetNormalLighting(float x, float y, float z)
+		{
+			voxie_setnorm(x,y,z);
 		}
 
 		#endregion
